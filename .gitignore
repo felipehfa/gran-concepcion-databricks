@@ -1,0 +1,6 @@
+.databricks
+.vscode/
+__pycache__/
+*.pyc
+.env
+.databrickscfg
