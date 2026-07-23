@@ -21,6 +21,18 @@
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ### 0. Importar librerías
+
+# COMMAND ----------
+
+from datetime import date
+
+import pandas as pd
+import requests
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ### 1. Crear el esquema de Plata y la tabla de tasas (si no existen)
 
 # COMMAND ----------
@@ -85,8 +97,6 @@ print(f"{len(fechas_faltantes)} fechas todavía no cacheadas, se consultarán a 
 
 # COMMAND ----------
 
-import requests
-
 anios_necesarios = {fecha[:4] for fecha in fechas_faltantes}
 valores_uf_por_fecha = {}
 
@@ -110,9 +120,6 @@ print(f"{len(valores_uf_por_fecha)} valores de UF obtenidos en total (todos los 
 # MAGIC consultada.
 
 # COMMAND ----------
-
-import pandas as pd
-from datetime import date
 
 VALOR_DOLAR_CLP = 925.0   # fijo, aproximado - no varía lo suficiente para justificar histórico
 

@@ -39,6 +39,19 @@
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ### 0. Importar librerías
+
+# COMMAND ----------
+
+import json
+import pickle
+
+import numpy as np
+import pandas as pd
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ### 1. Configuración: ruta del modelo vigente en el Volume
 
 # COMMAND ----------
@@ -88,9 +101,6 @@ print("Esquema y tabla predicciones verificados/creados.")
 # MAGIC calculada en el test set al entrenar.
 
 # COMMAND ----------
-
-import json
-import pickle
 
 with open(RUTA_MODELO_PKL, "rb") as f:
     modelo_guardado = pickle.load(f)
@@ -147,8 +157,6 @@ print(f"{len(pendientes_df)} avisos pendientes de predicción para la versión {
 
 # COMMAND ----------
 
-import numpy as np
-
 pendientes_df["costo_total_real"] = pendientes_df["precio_clp"] + pendientes_df["gastos_comunes"]
 
 mask_precio_valido = pendientes_df["precio_clp"].notna() & (pendientes_df["precio_clp"] <= PRECIO_MAXIMO_ARRIENDO_CLP)
@@ -197,8 +205,6 @@ else:
 # MAGIC distribución.
 
 # COMMAND ----------
-
-import pandas as pd
 
 if len(pendientes_df) > 0:
     bordes_deciles = calibracion["bordes_deciles_precio"]

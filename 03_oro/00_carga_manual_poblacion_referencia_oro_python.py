@@ -44,6 +44,19 @@
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ### 0. Importar librerías
+
+# COMMAND ----------
+
+import json
+import sqlite3
+
+import numpy as np
+import pandas as pd
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ### 1. Configuración: rutas de los artefactos en el Volume
 # MAGIC Ajustar si se subieron a otra carpeta.
 
@@ -132,10 +145,6 @@ print("Esquema y tablas de referencia verificados/creados.")
 
 # COMMAND ----------
 
-import sqlite3
-
-import pandas as pd
-
 df_csv = pd.read_csv(RUTA_CSV_INGENIERIA_VARIABLES)
 
 con_original = sqlite3.connect(f"file:{RUTA_BD_ORIGINAL_SQLITE}?mode=ro", uri=True)
@@ -167,8 +176,6 @@ print(f"Población de referencia: {len(referencia)} departamentos históricos co
 # MAGIC que en el proyecto original.
 
 # COMMAND ----------
-
-import numpy as np
 
 referencia["precio_m2"] = referencia["costo_total_clp"] / referencia["superficie_util_m2"].replace(0, np.nan)
 
@@ -267,8 +274,6 @@ print("Estadísticas de respaldo (global y por comuna) calculadas y guardadas.")
 # MAGIC `referencia_estadisticas`, con clave `nivel_barrio_default`.
 
 # COMMAND ----------
-
-import json
 
 with open(RUTA_NIVELES_BARRIO_JSON, encoding="utf-8") as f:
     niveles_barrio = json.load(f)

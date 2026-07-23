@@ -49,7 +49,20 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 2. Asegurar que existan las columnas de vulnerabilidad en Oro
+# MAGIC ### 2. Importar librerías
+
+# COMMAND ----------
+
+from datetime import datetime
+
+import pandas as pd
+from shapely import wkt
+from shapely.geometry import Point
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### 3. Asegurar que existan las columnas de vulnerabilidad en Oro
 # MAGIC Si ya existen (de una corrida anterior), el `ALTER TABLE` falla
 # MAGIC silenciosamente (se captura la excepción).
 
@@ -78,12 +91,10 @@ for columna, tipo in columnas_a_asegurar.items():
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 3. Cargar los polígonos de Unidad Vecinal desde Bronce
+# MAGIC ### 4. Cargar los polígonos de Unidad Vecinal desde Bronce
 # MAGIC Parsea `geometria_wkt` (texto) a geometría real de shapely.
 
 # COMMAND ----------
-
-from shapely import wkt
 
 poligonos_rows = spark.sql("""
     SELECT uv_rsh, comuna, rank_nac, pob_rsh_uv, p_urbano, c_ig_com, hog_uv, geometria_wkt
@@ -110,7 +121,7 @@ print(f"{len(poligonos)} polígonos de Unidad Vecinal cargados.")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 4. Identificar avisos pendientes de resolver
+# MAGIC ### 5. Identificar avisos pendientes de resolver
 # MAGIC Avisos en Oro con coordenadas válidas y `uv_rsh` todavía sin resolver.
 
 # COMMAND ----------
@@ -127,16 +138,13 @@ print(f"{len(pendientes)} avisos con coordenadas pendientes de resolver vulnerab
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 5. Cruce punto-en-polígono
+# MAGIC ### 6. Cruce punto-en-polígono
 # MAGIC Para cada aviso pendiente, se busca el primer polígono cuya geometría lo
 # MAGIC contenga. Los que no caen dentro de ningún polígono (fuera de las 10
 # MAGIC comunas analizadas, o coordenada imprecisa) quedan sin resolver — se
 # MAGIC reintentan en la próxima corrida si el shapefile se actualiza.
 
 # COMMAND ----------
-
-from shapely.geometry import Point
-from datetime import datetime
 
 resueltos = []
 sin_uv = 0
@@ -167,13 +175,11 @@ print(f"{len(resueltos)} avisos resueltos. {sin_uv} sin Unidad Vecinal asignada 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 6. Escribir los resultados de vuelta (MERGE, no INSERT)
+# MAGIC ### 7. Escribir los resultados de vuelta (MERGE, no INSERT)
 # MAGIC Las filas ya existen en `avisos_features` — se actualizan solo las
 # MAGIC columnas de vulnerabilidad de los avisos resueltos en esta corrida.
 
 # COMMAND ----------
-
-import pandas as pd
 
 if len(resueltos) == 0:
     print("No hay avisos nuevos para actualizar.")
@@ -207,7 +213,7 @@ else:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 7. Verificar
+# MAGIC ### 8. Verificar
 
 # COMMAND ----------
 

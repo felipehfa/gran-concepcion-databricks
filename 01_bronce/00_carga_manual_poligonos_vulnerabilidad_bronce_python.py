@@ -42,6 +42,23 @@
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ### 0. Importar librerías
+# MAGIC `pyshp` y `shapely` ya vienen declaradas como dependencias del entorno de
+# MAGIC este notebook (bloque `dependencies` arriba), así que no hace falta un
+# MAGIC `%pip install` adicional; solo hay que importarlas.
+
+# COMMAND ----------
+
+import math
+
+import pandas as pd
+import shapefile
+from shapely.geometry import shape as shapely_shape
+from shapely.ops import transform as shapely_transform
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ### 1. Crear el esquema de Bronce y la tabla `poligonos_vulnerabilidad_uv` (si no existen)
 
 # COMMAND ----------
@@ -104,9 +121,6 @@ RADIO_WEB_MERCATOR_M = 6378137.0
 
 # COMMAND ----------
 
-import math
-
-
 def web_mercator_a_wgs84(x, y):
     lon = (x / RADIO_WEB_MERCATOR_M) * (180.0 / math.pi)
     lat = (2 * math.atan(math.exp(y / RADIO_WEB_MERCATOR_M)) - math.pi / 2) * (180.0 / math.pi)
@@ -122,10 +136,6 @@ def web_mercator_a_wgs84(x, y):
 # MAGIC `shapely.ops.transform`.
 
 # COMMAND ----------
-
-import shapefile
-from shapely.geometry import shape as shapely_shape
-from shapely.ops import transform as shapely_transform
 
 nombres_comuna_validos = set(COMUNAS_ANALIZADAS.values())
 
@@ -162,8 +172,6 @@ print(f"{len(registros_filtrados)} Unidades Vecinales encontradas en las 10 comu
 # MAGIC ### 5. Armar DataFrame y vista temporal
 
 # COMMAND ----------
-
-import pandas as pd
 
 df_poligonos = pd.DataFrame(registros_filtrados)
 spark.createDataFrame(df_poligonos).createOrReplaceTempView("poligonos_vulnerabilidad_tmp")

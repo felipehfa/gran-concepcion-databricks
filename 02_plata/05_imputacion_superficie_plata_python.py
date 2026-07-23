@@ -32,6 +32,22 @@
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ### 0. Importar librerías
+# MAGIC `scikit-learn` ya viene declarada como dependencia del entorno de este
+# MAGIC notebook (bloque `dependencies` arriba) — necesaria para que `joblib`
+# MAGIC pueda deserializar los modelos `RandomForestRegressor` guardados, aunque
+# MAGIC no se importe explícitamente acá.
+
+# COMMAND ----------
+
+from datetime import datetime
+
+import joblib
+import pandas as pd
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ### 1. Asegurar que existan las columnas de trazabilidad
 # MAGIC Si `avisos_limpios` viene de una corrida anterior de este mismo notebook,
 # MAGIC estas columnas ya existen y el `ALTER TABLE` falla silenciosamente (se
@@ -63,8 +79,6 @@ for columna, tipo in columnas_a_asegurar.items():
 
 # COMMAND ----------
 
-import joblib
-
 RUTA_MODELO_METROS_UTILES = "/Volumes/gran_concepcion/02_plata/modelos/modelo_superficie_util_m2_departamento.pkl"
 paquete_util = joblib.load(RUTA_MODELO_METROS_UTILES)
 
@@ -80,8 +94,6 @@ print(f"R² validación: {paquete_util.get('r2_validacion')}")
 # MAGIC ### 3. Leer la tabla de Plata
 
 # COMMAND ----------
-
-import pandas as pd
 
 df_plata = spark.sql("SELECT * FROM gran_concepcion.02_plata.avisos_limpios").toPandas()
 print(f"{len(df_plata)} filas en total")
@@ -105,8 +117,6 @@ print(f"{mask_falta_util.sum()} avisos con superficie_util_m2 faltante de {len(d
 # MAGIC al modelo (evita el error de "0 samples").
 
 # COMMAND ----------
-
-from datetime import datetime
 
 ahora = datetime.now()
 
