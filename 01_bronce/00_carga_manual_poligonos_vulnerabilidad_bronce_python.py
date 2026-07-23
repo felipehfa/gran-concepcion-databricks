@@ -50,7 +50,6 @@
 # COMMAND ----------
 
 import math
-
 import pandas as pd
 import shapefile
 from shapely.geometry import shape as shapely_shape
@@ -197,13 +196,12 @@ df_poligonos.head()
 # MAGIC     destino.pob_rsh_uv = nuevo.pob_rsh_uv,
 # MAGIC     destino.p_urbano = nuevo.p_urbano,
 # MAGIC     destino.c_ig_com = nuevo.c_ig_com,
-# MAGIC     destino.hog_uv = nuevo.hog_uv,
 # MAGIC     destino.geometria_wkt = nuevo.geometria_wkt
 # MAGIC WHEN NOT MATCHED THEN INSERT (
-# MAGIC     uv_rsh, comuna, rank_nac, pob_rsh_uv, p_urbano, c_ig_com, hog_uv, geometria_wkt
+# MAGIC     uv_rsh, comuna, rank_nac, pob_rsh_uv, p_urbano, c_ig_com, geometria_wkt
 # MAGIC ) VALUES (
 # MAGIC     nuevo.uv_rsh, nuevo.comuna, nuevo.rank_nac, nuevo.pob_rsh_uv,
-# MAGIC     nuevo.p_urbano, nuevo.c_ig_com, nuevo.hog_uv, nuevo.geometria_wkt
+# MAGIC     nuevo.p_urbano, nuevo.c_ig_com, nuevo.geometria_wkt
 # MAGIC )
 
 # COMMAND ----------
