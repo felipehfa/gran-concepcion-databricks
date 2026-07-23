@@ -8,25 +8,25 @@
 # MAGIC
 # MAGIC Procesa **solo** los avisos de Bronce que todavía no existen en
 # MAGIC `gran_concepcion.02_plata.avisos_limpios` (comparando por `id_aviso`), y
-# MAGIC los agrega vía INSERT — sin recalcular ni tocar los avisos ya procesados
+# MAGIC los agrega vía INSERT, sin recalcular ni tocar los avisos ya procesados
 # MAGIC en corridas anteriores. Cada fila insertada queda marcada con
 # MAGIC `fecha_limpieza_plata`, la fecha/hora exacta en que se procesó.
 # MAGIC
-# MAGIC **Nota sobre la imputación de antigüedad:** para buscar el vecino
-# MAGIC geográfico más cercano, cada aviso nuevo se compara contra el conjunto
-# MAGIC completo de avisos con antigüedad conocida — tanto los ya existentes en
-# MAGIC Plata como los nuevos de esta corrida — para no perder un vecino más
-# MAGIC cercano que ya estuviera guardado. Solo los avisos nuevos se insertan al
-# MAGIC final.
+# MAGIC Esta capa solo parsea y tipa los datos crudos de Bronce (números en
+# MAGIC formato chileno, booleanos "Sí"/"No", conversión de precio a CLP). No
+# MAGIC imputa ni descarta nada todavía: eso ocurre después, en la etapa de
+# MAGIC features de Oro, contra la población de referencia congelada del modelo
+# MAGIC (ver `03_oro/06_features_oro_sql.py`) — así el aviso que llega a Oro se
+# MAGIC puntúa exactamente igual que en el proyecto original, sea cual sea el
+# MAGIC estado del catálogo en el momento de la corrida.
 # MAGIC
-# MAGIC **IMPORTANTE — primera corrida:** si `gran_concepcion.02_plata.avisos_limpios`
-# MAGIC todavía no existe, hay dos celdas marcadas más abajo ("PRIMERA CORRIDA")
-# MAGIC que hay que ajustar temporalmente (comentar la referencia a la tabla que
-# MAGIC todavía no existe). Desde la segunda corrida en adelante, se usan tal cual
-# MAGIC están escritas.
+# MAGIC **Primera corrida o corridas siguientes: mismo código.** La condición de
+# MAGIC "avisos pendientes" y la creación de la tabla se resuelven solas según si
+# MAGIC `avisos_limpios` ya existe (`spark.catalog.tableExists`), sin ningún paso
+# MAGIC manual que ajustar.
 # MAGIC
-# MAGIC **Requisito previo:** `avisos`, `avisos_detalle` cargadas en Bronce, y
-# MAGIC el notebook `03_tasas_historicas_plata` ya corrido, con
+# MAGIC **Requisito previo:** `avisos`, `avisos_detalle` cargadas en Bronce, y el
+# MAGIC notebook `03_tasas_historicas_plata` ya corrido, con
 # MAGIC `gran_concepcion.02_plata.valores_pesos` conteniendo las fechas
 # MAGIC necesarias.
 
@@ -45,66 +45,81 @@
 # MAGIC %md
 # MAGIC ### 2. Identificar avisos pendientes de limpiar
 # MAGIC Avisos que ya tienen detalle en Bronce, pero todavía no están en
-# MAGIC `avisos_limpios`.
-# MAGIC
-# MAGIC **PRIMERA CORRIDA:** si `avisos_limpios` no existe todavía, borrar el
-# MAGIC bloque `WHERE NOT EXISTS (...)` completo (dejar el SELECT sin ese filtro).
+# MAGIC `avisos_limpios`. Si la tabla no existe todavía (primera corrida), todos
+# MAGIC los avisos de Bronce con detalle se consideran pendientes.
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC CREATE OR REPLACE TEMP VIEW base_avisos_pendientes AS
-# MAGIC SELECT
-# MAGIC     a.id_aviso,
-# MAGIC     a.comuna,
-# MAGIC     a.tipo_propiedad,
-# MAGIC     a.operacion,
-# MAGIC     a.titulo,
-# MAGIC     a.precio        AS precio_texto,
-# MAGIC     a.moneda,
-# MAGIC     a.ubicacion,
-# MAGIC     a.first_seen,
-# MAGIC     d.descripcion,
-# MAGIC     d.fecha_publicacion_texto,
-# MAGIC     d.fecha_publicacion_aprox,
-# MAGIC     d.fecha_publicacion_precision,
-# MAGIC     d.superficie_total_m2   AS superficie_total_m2_texto,
-# MAGIC     d.superficie_util_m2    AS superficie_util_m2_texto,
-# MAGIC     d.dormitorios           AS dormitorios_texto,
-# MAGIC     d.banos                 AS banos_texto,
-# MAGIC     d.estacionamientos      AS estacionamientos_texto,
-# MAGIC     d.antiguedad_anos       AS antiguedad_anos_texto,
-# MAGIC     d.amoblado              AS amoblado_texto,
-# MAGIC     d.admite_mascotas       AS admite_mascotas_texto,
-# MAGIC     d.condominio_cerrado    AS condominio_cerrado_texto,
-# MAGIC     d.bodegas               AS bodegas_texto,
-# MAGIC     d.gastos_comunes        AS gastos_comunes_texto,
-# MAGIC     d.estacionamiento_visitas AS estacionamiento_visitas_texto,
-# MAGIC     d.solo_familias         AS solo_familias_texto,
-# MAGIC     d.max_habitantes        AS max_habitantes_texto,
-# MAGIC     d.piscina               AS piscina_texto,
-# MAGIC     d.quincho               AS quincho_texto,
-# MAGIC     d.conserjeria           AS conserjeria_texto,
-# MAGIC     d.ascensor              AS ascensor_texto,
-# MAGIC     d.piso_unidad           AS piso_unidad_texto,
-# MAGIC     d.deptos_por_piso       AS deptos_por_piso_texto,
-# MAGIC     d.barrio,
-# MAGIC     d.latitud   AS latitud_texto,
-# MAGIC     d.longitud  AS longitud_texto,
-# MAGIC     d.estado_publicacion,
-# MAGIC     d.cantidad_paraderos, d.distancia_min_m_paraderos,
-# MAGIC     d.cantidad_estaciones_metro, d.distancia_min_m_estaciones_metro,
-# MAGIC     d.cantidad_jardines_infantiles, d.distancia_min_m_jardines_infantiles,
-# MAGIC     d.cantidad_colegios, d.distancia_min_m_colegios,
-# MAGIC     d.cantidad_universidades, d.distancia_min_m_universidades,
-# MAGIC     d.cantidad_plazas, d.distancia_min_m_plazas,
-# MAGIC     d.cantidad_supermercados, d.distancia_min_m_supermercados,
-# MAGIC     d.cantidad_farmacias, d.distancia_min_m_farmacias,
-# MAGIC     d.cantidad_centros_comerciales, d.distancia_min_m_centros_comerciales,
-# MAGIC     d.cantidad_hospitales, d.distancia_min_m_hospitales,
-# MAGIC     d.cantidad_clinicas, d.distancia_min_m_clinicas
-# MAGIC FROM gran_concepcion.01_bronce.avisos a
-# MAGIC INNER JOIN gran_concepcion.01_bronce.avisos_detalle d ON a.id_aviso = d.id_aviso
+tabla_plata = "gran_concepcion.02_plata.avisos_limpios"
+
+if spark.catalog.tableExists(tabla_plata):
+    condicion_pendientes = f"""
+        WHERE NOT EXISTS (
+            SELECT 1 FROM {tabla_plata} p
+            WHERE p.id_aviso = a.id_aviso
+        )
+    """
+else:
+    condicion_pendientes = ""  # tabla no existe todavía -> todo Bronce con detalle es "pendiente"
+
+spark.sql(f"""
+    CREATE OR REPLACE TEMP VIEW base_avisos_pendientes AS
+    SELECT
+        a.id_aviso,
+        a.comuna,
+        a.tipo_propiedad,
+        a.operacion,
+        a.titulo,
+        a.precio        AS precio_texto,
+        a.moneda,
+        a.ubicacion,
+        a.first_seen,
+        a.superficie_m2 AS superficie_m2_texto,
+        d.descripcion,
+        d.fecha_publicacion_texto,
+        d.fecha_publicacion_aprox,
+        d.fecha_publicacion_precision,
+        d.superficie_total_m2   AS superficie_total_m2_texto,
+        d.superficie_util_m2    AS superficie_util_m2_texto,
+        d.dormitorios           AS dormitorios_texto,
+        d.banos                 AS banos_texto,
+        d.estacionamientos      AS estacionamientos_texto,
+        d.antiguedad_anos       AS antiguedad_anos_texto,
+        d.amoblado              AS amoblado_texto,
+        d.admite_mascotas       AS admite_mascotas_texto,
+        d.condominio_cerrado    AS condominio_cerrado_texto,
+        d.bodegas               AS bodegas_texto,
+        d.gastos_comunes        AS gastos_comunes_texto,
+        d.estacionamiento_visitas AS estacionamiento_visitas_texto,
+        d.solo_familias         AS solo_familias_texto,
+        d.max_habitantes        AS max_habitantes_texto,
+        d.piscina               AS piscina_texto,
+        d.quincho               AS quincho_texto,
+        d.conserjeria           AS conserjeria_texto,
+        d.ascensor              AS ascensor_texto,
+        d.piso_unidad           AS piso_unidad_texto,
+        d.deptos_por_piso       AS deptos_por_piso_texto,
+        d.barrio,
+        d.latitud   AS latitud_texto,
+        d.longitud  AS longitud_texto,
+        a.estado_publicacion,
+        d.cantidad_paraderos, d.distancia_min_m_paraderos,
+        d.cantidad_estaciones_metro, d.distancia_min_m_estaciones_metro,
+        d.cantidad_jardines_infantiles, d.distancia_min_m_jardines_infantiles,
+        d.cantidad_colegios, d.distancia_min_m_colegios,
+        d.cantidad_universidades, d.distancia_min_m_universidades,
+        d.cantidad_plazas, d.distancia_min_m_plazas,
+        d.cantidad_supermercados, d.distancia_min_m_supermercados,
+        d.cantidad_farmacias, d.distancia_min_m_farmacias,
+        d.cantidad_centros_comerciales, d.distancia_min_m_centros_comerciales,
+        d.cantidad_hospitales, d.distancia_min_m_hospitales,
+        d.cantidad_clinicas, d.distancia_min_m_clinicas
+    FROM gran_concepcion.01_bronce.avisos a
+    INNER JOIN gran_concepcion.01_bronce.avisos_detalle d ON a.id_aviso = d.id_aviso
+    {condicion_pendientes}
+""")
+
+print(f"{spark.table('base_avisos_pendientes').count()} avisos pendientes de limpiar en Plata.")
 
 # COMMAND ----------
 
@@ -129,6 +144,10 @@
 # MAGIC         regexp_replace(regexp_replace(superficie_util_m2_texto, '\\.', ''), ',', '.')
 # MAGIC         AS DOUBLE
 # MAGIC     ) AS superficie_util_m2,
+# MAGIC     TRY_CAST(
+# MAGIC         regexp_replace(regexp_replace(superficie_m2_texto, '\\.', ''), ',', '.')
+# MAGIC         AS DOUBLE
+# MAGIC     ) AS superficie_m2,
 # MAGIC     TRY_CAST(dormitorios_texto AS DOUBLE)      AS dormitorios,
 # MAGIC     TRY_CAST(banos_texto AS DOUBLE)            AS banos,
 # MAGIC     TRY_CAST(estacionamientos_texto AS DOUBLE) AS estacionamientos,
@@ -167,6 +186,7 @@
 # MAGIC - Dígito suelto sin punto y < 1.000 (ej. `"1"`, `"10"`): placeholder de
 # MAGIC   "incluido en el arriendo" → se guarda como `0.0`.
 # MAGIC - Sin punto y ≥ 500.000 (ej. `"1111111"`): outlier implausible → `NULL`.
+# MAGIC   Mismo umbral que usa el proyecto original para descartar este caso.
 
 # COMMAND ----------
 
@@ -192,20 +212,27 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 5. Filtros de valores imposibles
-# MAGIC Descarta (deja en NULL, no borra la fila) valores fuera de rango razonable
-# MAGIC para dormitorios, baños, estacionamientos y precio.
+# MAGIC ### 5. Filtro de valores imposibles (dormitorios, baños, estacionamientos)
+# MAGIC Deja en NULL (no borra la fila) los valores fuera de rango razonable,
+# MAGIC mismos umbrales que usa el proyecto original para descartar avisos en la
+# MAGIC etapa de features (`aplicar_filtros_sanidad`): dormitorios > 6, baños > 5,
+# MAGIC estacionamientos > 15.
+# MAGIC
+# MAGIC **El filtro de precio máximo NO va acá.** El proyecto original lo aplica
+# MAGIC sobre `precio_clp` (ya convertido a CLP) recién en la etapa de predicción,
+# MAGIC no sobre el monto crudo en la moneda original — un aviso en UF nunca
+# MAGIC dispararía un filtro de "precio > 8.000.000" antes de convertir (las UF
+# MAGIC son números de 3 cifras). Ver `04_prediccion/08_prediccion_oro_python.py`.
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC CREATE OR REPLACE TEMP VIEW pendientes_filtrados AS
 # MAGIC SELECT
-# MAGIC     * EXCEPT (dormitorios, banos, estacionamientos, precio),
-# MAGIC     CASE WHEN dormitorios BETWEEN 0 AND 10 THEN dormitorios END AS dormitorios,
-# MAGIC     CASE WHEN banos BETWEEN 0 AND 10 THEN banos END AS banos,
-# MAGIC     CASE WHEN estacionamientos BETWEEN 0 AND 5 THEN estacionamientos END AS estacionamientos,
-# MAGIC     CASE WHEN precio <= 8000000 THEN precio END AS precio
+# MAGIC     * EXCEPT (dormitorios, banos, estacionamientos),
+# MAGIC     CASE WHEN dormitorios <= 6 THEN dormitorios END AS dormitorios,
+# MAGIC     CASE WHEN banos <= 5 THEN banos END AS banos,
+# MAGIC     CASE WHEN estacionamientos <= 15 THEN estacionamientos END AS estacionamientos
 # MAGIC FROM pendientes_gastos_comunes
 
 # COMMAND ----------
@@ -214,7 +241,8 @@
 # MAGIC ### 6. Conversión de precio a CLP
 # MAGIC El precio puede venir en CLP, UF o USD (columna `moneda`). Se convierte a
 # MAGIC CLP usando la tasa vigente el día de la publicación del aviso (fecha
-# MAGIC exacta, no "la más reciente disponible").
+# MAGIC exacta, no "la más reciente disponible"). Se agrega acá mismo
+# MAGIC `fecha_limpieza_plata`, el momento exacto en que el aviso entró a Plata.
 
 # COMMAND ----------
 
@@ -228,7 +256,8 @@
 # MAGIC         WHEN lower(av.moneda) = 'uf' THEN av.precio * tasas.valor_uf_clp
 # MAGIC         WHEN lower(av.moneda) IN ('us$', 'usd', 'usd$') THEN av.precio * tasas.valor_dolar_clp
 # MAGIC         ELSE av.precio
-# MAGIC     END AS precio_clp
+# MAGIC     END AS precio_clp,
+# MAGIC     CURRENT_TIMESTAMP() AS fecha_limpieza_plata
 # MAGIC FROM pendientes_filtrados av
 # MAGIC LEFT JOIN gran_concepcion.02_plata.valores_pesos tasas
 # MAGIC     ON tasas.fecha_valor = COALESCE(av.fecha_publicacion_aprox, av.first_seen)
@@ -236,132 +265,33 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 7. Imputación de antigüedad: vecinos desde Plata existente + pendientes
-# MAGIC Cada aviso pendiente busca su vecino más cercano entre TODOS los avisos con
-# MAGIC antigüedad conocida — los ya guardados en Plata, y los pendientes de esta
-# MAGIC misma corrida — para no perder un vecino mejor que ya existiera.
-# MAGIC
-# MAGIC **PRIMERA CORRIDA:** si `avisos_limpios` no existe todavía, borrar el
-# MAGIC primer SELECT de la UNION ALL (el que lee de `avisos_limpios`) y dejar
-# MAGIC solo el segundo (el que lee de `pendientes_precio_clp`).
+# MAGIC ### 7. Crear la tabla de Plata (si no existe) e insertar los avisos nuevos
+# MAGIC Igual patrón que el resto del pipeline: si `avisos_limpios` no existe
+# MAGIC todavía, esta misma celda la crea con el esquema correcto a partir de los
+# MAGIC pendientes; si ya existe, inserta solo las filas nuevas.
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC CREATE OR REPLACE TEMP VIEW candidatos_antiguedad_conocida AS
-# MAGIC SELECT id_aviso, tipo_propiedad, comuna, antiguedad_anos, latitud, longitud
-# MAGIC FROM pendientes_precio_clp
-# MAGIC WHERE antiguedad_anos IS NOT NULL AND latitud IS NOT NULL AND longitud IS NOT NULL
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC CREATE OR REPLACE TEMP VIEW candidatos_vecino_antiguedad AS
-# MAGIC SELECT
-# MAGIC     a.id_aviso,
-# MAGIC     b.antiguedad_anos AS antiguedad_vecino,
-# MAGIC     ROW_NUMBER() OVER (
-# MAGIC         PARTITION BY a.id_aviso
-# MAGIC         ORDER BY 2 * 6371000 * ASIN(SQRT(
-# MAGIC             POWER(SIN(RADIANS(b.latitud - a.latitud) / 2), 2) +
-# MAGIC             COS(RADIANS(a.latitud)) * COS(RADIANS(b.latitud)) *
-# MAGIC             POWER(SIN(RADIANS(b.longitud - a.longitud) / 2), 2)
-# MAGIC         )) ASC
-# MAGIC     ) AS ranking
-# MAGIC FROM pendientes_precio_clp a
-# MAGIC INNER JOIN candidatos_antiguedad_conocida b
-# MAGIC     ON a.tipo_propiedad = b.tipo_propiedad
-# MAGIC     AND a.id_aviso != b.id_aviso
-# MAGIC WHERE a.antiguedad_anos IS NULL
-# MAGIC   AND a.latitud IS NOT NULL AND a.longitud IS NOT NULL
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### 8. Medianas de fallback (calculadas sobre Plata + pendientes)
-# MAGIC Se usan cuando no hay ningún vecino geográfico disponible: mediana por
-# MAGIC tipo de propiedad, luego por comuna, luego global.
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC CREATE OR REPLACE TEMP VIEW medianas_antiguedad AS
-# MAGIC SELECT
-# MAGIC     tipo_propiedad,
-# MAGIC     comuna,
-# MAGIC     PERCENTILE_APPROX(antiguedad_anos, 0.5) OVER (PARTITION BY tipo_propiedad) AS mediana_tipo,
-# MAGIC     PERCENTILE_APPROX(antiguedad_anos, 0.5) OVER (PARTITION BY comuna) AS mediana_comuna,
-# MAGIC     PERCENTILE_APPROX(antiguedad_anos, 0.5) OVER () AS mediana_global
-# MAGIC FROM candidatos_antiguedad_conocida
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### 9. Aplicar la cascada de imputación sobre los pendientes
-# MAGIC Vecino más cercano → mediana por tipo → mediana por comuna → mediana
-# MAGIC global. Se agrega `fecha_limpieza_plata` con el momento exacto del
-# MAGIC procesamiento — como esta vista solo cubre avisos NUEVOS (nunca ya
-# MAGIC existentes), cada fila queda con la fecha en que efectivamente entró a
-# MAGIC Plata.
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC CREATE OR REPLACE TEMP VIEW pendientes_antiguedad_imputada AS
-# MAGIC SELECT
-# MAGIC     av.* EXCEPT (antiguedad_anos),
-# MAGIC     COALESCE(
-# MAGIC         av.antiguedad_anos,
-# MAGIC         vecino.antiguedad_vecino,
-# MAGIC         med.mediana_tipo,
-# MAGIC         med.mediana_comuna,
-# MAGIC         med.mediana_global
-# MAGIC     ) AS antiguedad_anos,
-# MAGIC     CASE WHEN av.antiguedad_anos IS NULL THEN true ELSE false END AS antiguedad_imputada,
-# MAGIC     CURRENT_TIMESTAMP() AS fecha_limpieza_plata
-# MAGIC FROM pendientes_precio_clp av
-# MAGIC LEFT JOIN candidatos_vecino_antiguedad vecino
-# MAGIC     ON av.id_aviso = vecino.id_aviso AND vecino.ranking = 1
-# MAGIC LEFT JOIN (SELECT DISTINCT tipo_propiedad, comuna, mediana_tipo, mediana_comuna, mediana_global FROM medianas_antiguedad) med
-# MAGIC     ON av.tipo_propiedad = med.tipo_propiedad AND av.comuna = med.comuna
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### 10. Crear la tabla de Plata vacía (SOLO la primera corrida)
-# MAGIC Si `avisos_limpios` ya existe, esta celda no hace nada (`IF NOT EXISTS`).
-# MAGIC El `WHERE 1=0` asegura que se cree el esquema correcto (incluida
-# MAGIC `fecha_limpieza_plata`) sin insertar filas todavía — el INSERT real
-# MAGIC ocurre en la celda siguiente.
-# MAGIC
-# MAGIC ### 11. Insertar solo los avisos nuevos en Plata
-# MAGIC No se recalcula ni se toca ningún aviso ya existente — se corre en cada
-# MAGIC corrida, incluida la primera.
-
-# COMMAND ----------
-
-tabla_destino = "gran_concepcion.02_plata.avisos_limpios"
-
-if spark.catalog.tableExists(tabla_destino):
-    columnas = spark.table("pendientes_antiguedad_imputada").columns
+if spark.catalog.tableExists(tabla_plata):
+    columnas = spark.table("pendientes_precio_clp").columns
     lista_columnas = ", ".join(columnas)
 
     spark.sql(f"""
-        INSERT INTO {tabla_destino} ({lista_columnas})
-        SELECT {lista_columnas} FROM pendientes_antiguedad_imputada
+        INSERT INTO {tabla_plata} ({lista_columnas})
+        SELECT {lista_columnas} FROM pendientes_precio_clp
     """)
 else:
     spark.sql(f"""
-        CREATE TABLE {tabla_destino} AS
-        SELECT * FROM pendientes_antiguedad_imputada
+        CREATE TABLE {tabla_plata} AS
+        SELECT * FROM pendientes_precio_clp
     """)
 
-print(f"Procesadas {spark.table('pendientes_antiguedad_imputada').count()} filas.")
+print(f"Procesadas {spark.table('pendientes_precio_clp').count()} filas.")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 12. Verificar
+# MAGIC ### 8. Verificar
 
 # COMMAND ----------
 

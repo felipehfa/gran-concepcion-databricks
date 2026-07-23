@@ -9,9 +9,16 @@
 # MAGIC %md
 # MAGIC # 07 — Vulnerabilidad socioterritorial (Oro)
 # MAGIC
-# MAGIC Resuelve `uv_rsh`, `rank_nac`, `pob_rsh_uv`, `p_urbano`, `c_ig_com` para
-# MAGIC cada aviso, cruzando su coordenada contra los polígonos de Unidad Vecinal
-# MAGIC (IGVUST) mediante un test punto-en-polígono con `shapely`.
+# MAGIC Resuelve `uv_rsh`, `rank_nac`, `pob_rsh_uv`, `p_urbano`, `c_ig_com` y
+# MAGIC `hog_uv` para cada aviso, cruzando su coordenada contra los polígonos de
+# MAGIC Unidad Vecinal (IGVUST) mediante un test punto-en-polígono con `shapely`.
+# MAGIC
+# MAGIC Corre DESPUÉS de `06_features_oro_sql`, que ya dejó estas mismas columnas
+# MAGIC (salvo `uv_rsh`) con un valor de respaldo (media de la comuna en la
+# MAGIC población de referencia). El `MERGE` de acá abajo sobreescribe ese
+# MAGIC respaldo con el valor real en cuanto el cruce punto-en-polígono lo
+# MAGIC resuelve — mismo orden de prioridad que usa el proyecto original (valor
+# MAGIC real > media de la comuna > media global).
 # MAGIC
 # MAGIC Se hace directamente en Oro (no en Plata): es un enriquecimiento por
 # MAGIC coordenadas geográficas, igual en naturaleza a las distancias Haversine
@@ -54,6 +61,7 @@ columnas_a_asegurar = {
     "pob_rsh_uv": "DOUBLE",
     "p_urbano": "DOUBLE",
     "c_ig_com": "DOUBLE",
+    "hog_uv": "DOUBLE",
     "fecha_vulnerabilidad_oro": "TIMESTAMP",
 }
 
@@ -78,7 +86,7 @@ for columna, tipo in columnas_a_asegurar.items():
 from shapely import wkt
 
 poligonos_rows = spark.sql("""
-    SELECT uv_rsh, comuna, rank_nac, pob_rsh_uv, p_urbano, c_ig_com, geometria_wkt
+    SELECT uv_rsh, comuna, rank_nac, pob_rsh_uv, p_urbano, c_ig_com, hog_uv, geometria_wkt
     FROM gran_concepcion.01_bronce.poligonos_vulnerabilidad_uv
 """).collect()
 
@@ -92,7 +100,7 @@ poligonos = [
     {
         "uv_rsh": r["uv_rsh"], "comuna": r["comuna"], "rank_nac": r["rank_nac"],
         "pob_rsh_uv": r["pob_rsh_uv"], "p_urbano": r["p_urbano"], "c_ig_com": r["c_ig_com"],
-        "geometria": wkt.loads(r["geometria_wkt"]),
+        "hog_uv": r["hog_uv"], "geometria": wkt.loads(r["geometria_wkt"]),
     }
     for r in poligonos_rows
 ]
@@ -149,6 +157,7 @@ for fila in pendientes:
         "pob_rsh_uv": encontrado["pob_rsh_uv"],
         "p_urbano": encontrado["p_urbano"],
         "c_ig_com": encontrado["c_ig_com"],
+        "hog_uv": encontrado["hog_uv"],
         "fecha_vulnerabilidad_oro": ahora,
     })
 
@@ -192,6 +201,7 @@ else:
 # MAGIC     oro.pob_rsh_uv = nuevo.pob_rsh_uv,
 # MAGIC     oro.p_urbano = nuevo.p_urbano,
 # MAGIC     oro.c_ig_com = nuevo.c_ig_com,
+# MAGIC     oro.hog_uv = nuevo.hog_uv,
 # MAGIC     oro.fecha_vulnerabilidad_oro = CAST(nuevo.fecha_vulnerabilidad_oro AS TIMESTAMP)
 
 # COMMAND ----------
