@@ -41,6 +41,12 @@
 # MAGIC - `00_carga_manual_poblacion_referencia_oro_python` ya corrido al menos
 # MAGIC   una vez (población de referencia, niveles de barrio y estadísticas de
 # MAGIC   respaldo ya cargadas).
+# MAGIC
+# MAGIC Este notebook **no lee nada de Bronce directamente**: todo lo que
+# MAGIC necesita (incluida `url`, que ahora viaja Bronce→Plata→Oro) ya llega vía
+# MAGIC `avisos_limpios` — a diferencia de `07_vulnerabilidad_oro_python.py`, que
+# MAGIC sí lee una tabla de referencia de Bronce por una razón puntual (ver su
+# MAGIC propio notebook).
 
 # COMMAND ----------
 
@@ -433,8 +439,9 @@ if spark.catalog.tableExists(tabla_oro):
     """)
 else:
     spark.sql(f"""
-        CREATE TABLE {tabla_oro} AS
-        SELECT * FROM pendientes_oro
+        CREATE TABLE {tabla_oro}
+        PARTITIONED BY (fecha_publicacion_aprox)
+        AS SELECT * FROM pendientes_oro
     """)
 
 print(f"Procesadas {spark.table('pendientes_oro').count()} filas.")
@@ -457,8 +464,9 @@ else:
     seleccion_base = "*"
 
 spark.sql(f"""
-    CREATE OR REPLACE TABLE gran_concepcion.03_oro.avisos_features AS
-    SELECT * FROM (
+    CREATE OR REPLACE TABLE gran_concepcion.03_oro.avisos_features
+    PARTITIONED BY (fecha_publicacion_aprox)
+    AS SELECT * FROM (
         SELECT {seleccion_base},
             ROW_NUMBER() OVER (PARTITION BY id_aviso ORDER BY fecha_creacion_oro DESC) AS rn
         FROM gran_concepcion.03_oro.avisos_features
@@ -471,7 +479,18 @@ print("Duplicados eliminados. Columna 'rn' ya no debería persistir en la tabla.
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 16. Verificar
+# MAGIC ### 16. Compactar (OPTIMIZE)
+# MAGIC Cada corrida incremental agrega archivos chicos; se compactan
+# MAGIC periódicamente para que las lecturas no se degraden con el tiempo.
+
+# COMMAND ----------
+
+spark.sql("OPTIMIZE gran_concepcion.03_oro.avisos_features ZORDER BY (id_aviso)")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### 17. Verificar
 
 # COMMAND ----------
 

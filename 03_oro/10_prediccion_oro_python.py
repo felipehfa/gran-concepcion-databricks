@@ -7,14 +7,23 @@
 # ]
 # ///
 # MAGIC %md
-# MAGIC # 08 — Predicción de precio (Predicción)
+# MAGIC # 10 — Predicción de precio (Oro)
 # MAGIC
 # MAGIC Toma los avisos de `gran_concepcion.03_oro.avisos_features`, predice el
 # MAGIC costo total mensual (arriendo + gastos comunes) con el ensamble LightGBM
 # MAGIC del proyecto original, y guarda el resultado en
-# MAGIC `gran_concepcion.04_prediccion.predicciones`, junto con la etiqueta
+# MAGIC `gran_concepcion.03_oro.predicciones`, junto con la etiqueta
 # MAGIC (oportunidad / precio de mercado / caro) y el nivel de confianza que
 # MAGIC calcula la calibración guardada del modelo.
+# MAGIC
+# MAGIC **Antes vivía en un esquema propio (`gran_concepcion.04_prediccion`),
+# MAGIC como una 4ª capa fuera del modelo medallón de 3 capas.** Se plegó acá
+# MAGIC porque, conceptualmente, "avisos con su predicción y etiqueta lista para
+# MAGIC consumo de negocio" es exactamente lo que un layer Gold debería servir —
+# MAGIC a diferencia de `avisos_features` (feature engineering, más parecido a un
+# MAGIC segundo Silver), esta tabla sí es la salida final que consume el
+# MAGIC visualizador. Con esto, Oro pasa a incluir tanto la ingeniería de
+# MAGIC variables como la predicción, sin una capa aparte.
 # MAGIC
 # MAGIC **El modelo se carga manualmente**, no se reentrena acá: subir a un
 # MAGIC Volume el `modelo_produccion.pkl` (ensamble de modelos LightGBM,
@@ -33,7 +42,7 @@
 # MAGIC el decil de precio, la etiqueta y el nivel de confianza.
 # MAGIC
 # MAGIC **Requisito previo:** `gran_concepcion.03_oro.avisos_features` ya
-# MAGIC generada (notebooks 06 y 07 ya corridos), y el modelo vigente subido al
+# MAGIC generada (notebooks 06, 07 y 09 ya corridos), y el modelo vigente subido al
 # MAGIC Volume configurado más abajo.
 
 # COMMAND ----------
@@ -56,7 +65,7 @@ import pandas as pd
 
 # COMMAND ----------
 
-RUTA_MODELO_VIGENTE = "/Volumes/gran_concepcion/04_prediccion/modelo"
+RUTA_MODELO_VIGENTE = "/Volumes/gran_concepcion/03_oro/modelo_prediccion"
 RUTA_MODELO_PKL = f"{RUTA_MODELO_VIGENTE}/modelo_produccion.pkl"
 RUTA_PARAMETROS_JSON = f"{RUTA_MODELO_VIGENTE}/parametros_produccion.json"
 
@@ -68,14 +77,14 @@ PRECIO_MAXIMO_ARRIENDO_CLP = 8_000_000
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 2. Crear el esquema de Predicción y la tabla `predicciones` (si no existen)
+# MAGIC ### 2. Crear la tabla `predicciones` (si no existe)
+# MAGIC Particionada por `version_modelo`, la dimensión que más se filtra en las
+# MAGIC queries de este notebook y del visualizador.
 
 # COMMAND ----------
 
-spark.sql("CREATE SCHEMA IF NOT EXISTS gran_concepcion.04_prediccion")
-
 spark.sql("""
-    CREATE TABLE IF NOT EXISTS gran_concepcion.04_prediccion.predicciones (
+    CREATE TABLE IF NOT EXISTS gran_concepcion.03_oro.predicciones (
         id_aviso              STRING NOT NULL,
         version_modelo        STRING NOT NULL,
         fecha_prediccion      TIMESTAMP NOT NULL,
@@ -86,14 +95,50 @@ spark.sql("""
         nivel_confianza       STRING,
         cv_ensamble           DOUBLE
     )
+    PARTITIONED BY (version_modelo)
 """)
 
-print("Esquema y tabla predicciones verificados/creados.")
+print("Tabla predicciones verificada/creada.")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 3. Cargar el modelo vigente y su calibración
+# MAGIC ### 3. Migración única desde el esquema viejo (`gran_concepcion.04_prediccion`)
+# MAGIC Si el esquema anterior existe y todavía tiene datos que no están acá,
+# MAGIC los copia una sola vez. Idempotente: en corridas siguientes no encuentra
+# MAGIC nada pendiente de migrar y no hace nada. No borra el esquema viejo (eso
+# MAGIC queda a criterio manual, es una operación destructiva).
+
+# COMMAND ----------
+
+if spark.catalog.tableExists("gran_concepcion.04_prediccion.predicciones"):
+    pendientes_migracion = spark.sql("""
+        SELECT COUNT(*) AS n FROM gran_concepcion.04_prediccion.predicciones viejo
+        WHERE NOT EXISTS (
+            SELECT 1 FROM gran_concepcion.03_oro.predicciones nuevo
+            WHERE nuevo.id_aviso = viejo.id_aviso AND nuevo.version_modelo = viejo.version_modelo
+        )
+    """).collect()[0]["n"]
+
+    if pendientes_migracion > 0:
+        spark.sql("""
+            INSERT INTO gran_concepcion.03_oro.predicciones
+            SELECT viejo.* FROM gran_concepcion.04_prediccion.predicciones viejo
+            WHERE NOT EXISTS (
+                SELECT 1 FROM gran_concepcion.03_oro.predicciones nuevo
+                WHERE nuevo.id_aviso = viejo.id_aviso AND nuevo.version_modelo = viejo.version_modelo
+            )
+        """)
+        print(f"Migradas {pendientes_migracion} filas desde gran_concepcion.04_prediccion.predicciones.")
+    else:
+        print("Nada pendiente de migrar desde gran_concepcion.04_prediccion.predicciones.")
+else:
+    print("gran_concepcion.04_prediccion.predicciones no existe: nada que migrar.")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### 4. Cargar el modelo vigente y su calibración
 # MAGIC `modelo_produccion.pkl` guarda `{"algoritmo": ..., "modelos": [...]}`: un
 # MAGIC ensamble de modelos LightGBM entrenados con distintas semillas (bagging).
 # MAGIC `parametros_produccion.json` trae la lista de features en el orden exacto
@@ -126,7 +171,7 @@ print(f"Features esperadas: {len(features_modelo)}")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 4. Identificar avisos pendientes de predicción
+# MAGIC ### 5. Identificar avisos pendientes de predicción
 # MAGIC Avisos de Oro que todavía no tienen una fila en `predicciones` para la
 # MAGIC versión de modelo vigente (un reentrenamiento nuevo vuelve a predecir
 # MAGIC todo el histórico bajo su propia versión, sin pisar las predicciones de
@@ -137,7 +182,7 @@ print(f"Features esperadas: {len(features_modelo)}")
 pendientes_df = spark.sql(f"""
     SELECT f.*
     FROM gran_concepcion.03_oro.avisos_features f
-    LEFT JOIN gran_concepcion.04_prediccion.predicciones p
+    LEFT JOIN gran_concepcion.03_oro.predicciones p
         ON f.id_aviso = p.id_aviso AND p.version_modelo = '{version_modelo}'
     WHERE p.id_aviso IS NULL
 """).toPandas()
@@ -147,7 +192,7 @@ print(f"{len(pendientes_df)} avisos pendientes de predicción para la versión {
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 5. Filtrar por precio máximo
+# MAGIC ### 6. Filtrar por precio máximo
 # MAGIC `precio_clp` y `gastos_comunes` ya vienen calculados desde Plata/Oro (no
 # MAGIC hace falta reconvertir UF→CLP, a diferencia del proyecto original, que sí
 # MAGIC lo recalcula acá porque sus tablas de avisos en producción no guardan
@@ -169,7 +214,7 @@ print(f"{saltados} avisos saltados por precio_clp inválido o sobre el umbral. "
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 6. Predecir con el ensamble
+# MAGIC ### 7. Predecir con el ensamble
 # MAGIC Cada modelo del ensamble predice por separado (clip a `[0, ∞)`, un
 # MAGIC arriendo no puede ser negativo); el promedio es la predicción final y la
 # MAGIC desviación estándar entre modelos mide qué tan de acuerdo están entre sí
@@ -198,7 +243,7 @@ else:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 7. Calibración: decil de precio, z-score robusto, etiqueta y confianza
+# MAGIC ### 8. Calibración: decil de precio, z-score robusto, etiqueta y confianza
 # MAGIC Usa los bordes de deciles y las medianas/MAD de error por decil ya
 # MAGIC calculados al entrenar (guardados en `parametros_produccion.json`), en vez
 # MAGIC de recalcularlos: con una sola fila nueva no se puede construir una
@@ -245,7 +290,7 @@ if len(pendientes_df) > 0:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 8. Armar DataFrame final y vista temporal
+# MAGIC ### 9. Armar DataFrame final y vista temporal
 
 # COMMAND ----------
 
@@ -264,7 +309,7 @@ else:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 9. MERGE hacia Predicción (upsert por `id_aviso` + `version_modelo`)
+# MAGIC ### 10. MERGE hacia `predicciones` (upsert por `id_aviso` + `version_modelo`)
 # MAGIC Re-correr esta etapa nunca duplica ni corrompe nada: un aviso ya
 # MAGIC predicho con esta misma versión de modelo se actualiza en vez de
 # MAGIC insertarse de nuevo.
@@ -273,7 +318,7 @@ else:
 
 if len(pendientes_df) > 0:
     spark.sql("""
-        MERGE INTO gran_concepcion.04_prediccion.predicciones AS destino
+        MERGE INTO gran_concepcion.03_oro.predicciones AS destino
         USING predicciones_nuevas_tmp AS nuevo
         ON destino.id_aviso = nuevo.id_aviso AND destino.version_modelo = nuevo.version_modelo
         WHEN MATCHED THEN UPDATE SET
@@ -296,13 +341,25 @@ if len(pendientes_df) > 0:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 10. Verificar
+# MAGIC ### 11. Compactar (OPTIMIZE)
+# MAGIC Cada corrida incremental (y la migración de la sección 3) agrega
+# MAGIC archivos chicos; se compactan periódicamente para que las lecturas no se
+# MAGIC degraden con el tiempo.
+
+# COMMAND ----------
+
+spark.sql("OPTIMIZE gran_concepcion.03_oro.predicciones ZORDER BY (version_modelo)")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### 12. Verificar
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC SELECT version_modelo, COUNT(*) AS predicciones, AVG(costo_total_predicho) AS costo_promedio
-# MAGIC FROM gran_concepcion.04_prediccion.predicciones
+# MAGIC FROM gran_concepcion.03_oro.predicciones
 # MAGIC GROUP BY version_modelo
 # MAGIC ORDER BY version_modelo DESC
 
@@ -310,6 +367,6 @@ if len(pendientes_df) > 0:
 
 # MAGIC %sql
 # MAGIC SELECT id_aviso, costo_total_predicho, etiqueta, nivel_confianza, fecha_prediccion
-# MAGIC FROM gran_concepcion.04_prediccion.predicciones
+# MAGIC FROM gran_concepcion.03_oro.predicciones
 # MAGIC ORDER BY fecha_prediccion DESC
 # MAGIC LIMIT 10

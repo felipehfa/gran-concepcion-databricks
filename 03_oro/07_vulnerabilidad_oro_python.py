@@ -32,6 +32,14 @@
 # MAGIC **Requisito previo:**
 # MAGIC - `gran_concepcion.03_oro.avisos_features` ya generada (notebook 06).
 # MAGIC - `gran_concepcion.01_bronce.poligonos_vulnerabilidad_uv` con datos.
+# MAGIC
+# MAGIC **Por qué este notebook SÍ lee una tabla de Bronce directamente** (a
+# MAGIC diferencia del resto de Oro, que solo lee de Plata): los polígonos IGVUST
+# MAGIC son una tabla de referencia estática cargada a mano, sin ninguna
+# MAGIC transformación de Silver que aplicarles (no hay "limpieza" que hacerle a
+# MAGIC un polígono ya cargado, a diferencia de `url`, que sí tenía un camino
+# MAGIC natural a través de Plata y por eso viaja Bronce→Plata→Oro). Es una
+# MAGIC excepción deliberada, no deuda técnica.
 
 # COMMAND ----------
 
@@ -213,7 +221,19 @@ else:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 8. Verificar
+# MAGIC ### 8. Compactar (OPTIMIZE)
+# MAGIC El `MERGE` de la sección anterior agrega archivos de borrado chicos; se
+# MAGIC compactan periódicamente para que las lecturas no se degraden con el
+# MAGIC tiempo.
+
+# COMMAND ----------
+
+spark.sql("OPTIMIZE gran_concepcion.03_oro.avisos_features ZORDER BY (id_aviso)")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### 9. Verificar
 
 # COMMAND ----------
 

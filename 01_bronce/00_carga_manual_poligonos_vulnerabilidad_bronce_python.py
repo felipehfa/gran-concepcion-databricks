@@ -50,10 +50,17 @@
 # COMMAND ----------
 
 import math
+import uuid
+
 import pandas as pd
 import shapefile
 from shapely.geometry import shape as shapely_shape
 from shapely.ops import transform as shapely_transform
+
+# _id_corrida identifica todas las filas que esta ejecución del notebook
+# escribe en Bronce.
+ID_CORRIDA = str(uuid.uuid4())
+SISTEMA_ORIGEN = "carga_manual_igvust"
 
 # COMMAND ----------
 
@@ -73,7 +80,9 @@ spark.sql("""
         p_urbano       DOUBLE,
         c_ig_com       DOUBLE,
         hog_uv         DOUBLE,
-        geometria_wkt  STRING NOT NULL
+        geometria_wkt  STRING NOT NULL,
+        _sistema_origen STRING,
+        _id_corrida     STRING
     )
 """)
 
@@ -160,6 +169,8 @@ for registro in lector.shapeRecords():
         "c_ig_com": atributos.get("c_ig_com"),
         "hog_uv": atributos.get("hog_uv"),
         "geometria_wkt": geometria_wgs84.wkt,
+        "_sistema_origen": SISTEMA_ORIGEN,
+        "_id_corrida": ID_CORRIDA,
     })
 
 print(f"{len(registros_filtrados)} Unidades Vecinales encontradas en las 10 comunas del Gran Concepción "
@@ -196,12 +207,16 @@ df_poligonos.head()
 # MAGIC     destino.pob_rsh_uv = nuevo.pob_rsh_uv,
 # MAGIC     destino.p_urbano = nuevo.p_urbano,
 # MAGIC     destino.c_ig_com = nuevo.c_ig_com,
-# MAGIC     destino.geometria_wkt = nuevo.geometria_wkt
+# MAGIC     destino.geometria_wkt = nuevo.geometria_wkt,
+# MAGIC     destino._sistema_origen = nuevo._sistema_origen,
+# MAGIC     destino._id_corrida = nuevo._id_corrida
 # MAGIC WHEN NOT MATCHED THEN INSERT (
-# MAGIC     uv_rsh, comuna, rank_nac, pob_rsh_uv, p_urbano, c_ig_com, geometria_wkt
+# MAGIC     uv_rsh, comuna, rank_nac, pob_rsh_uv, p_urbano, c_ig_com, geometria_wkt,
+# MAGIC     _sistema_origen, _id_corrida
 # MAGIC ) VALUES (
 # MAGIC     nuevo.uv_rsh, nuevo.comuna, nuevo.rank_nac, nuevo.pob_rsh_uv,
-# MAGIC     nuevo.p_urbano, nuevo.c_ig_com, nuevo.geometria_wkt
+# MAGIC     nuevo.p_urbano, nuevo.c_ig_com, nuevo.geometria_wkt,
+# MAGIC     nuevo._sistema_origen, nuevo._id_corrida
 # MAGIC )
 
 # COMMAND ----------

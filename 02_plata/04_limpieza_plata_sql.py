@@ -43,6 +43,35 @@
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ### 1.5 Asegurar columnas nuevas en `avisos_limpios` (si la tabla ya existe)
+# MAGIC Si `avisos_limpios` viene de una corrida anterior a que `url` y las
+# MAGIC columnas de metadata (`_sistema_origen`, `_id_corrida`) se agregaran acá,
+# MAGIC el `ALTER TABLE` falla silenciosamente (se captura la excepción) — mismo
+# MAGIC patrón que usan `05_imputacion_superficie_plata_python.py` y
+# MAGIC `07_vulnerabilidad_oro_python.py`. Si la tabla no existe todavía, no hace
+# MAGIC falta nada: se crea con el esquema correcto en la sección 7.
+
+# COMMAND ----------
+
+if spark.catalog.tableExists("gran_concepcion.02_plata.avisos_limpios"):
+    columnas_a_asegurar = {
+        "url": "STRING",
+        "_sistema_origen": "STRING",
+        "_id_corrida": "STRING",
+    }
+    for columna, tipo in columnas_a_asegurar.items():
+        try:
+            spark.sql(f"""
+                ALTER TABLE gran_concepcion.02_plata.avisos_limpios
+                ADD COLUMNS ({columna} {tipo})
+            """)
+            print(f"Columna '{columna}' agregada.")
+        except Exception as e:
+            print(f"Columna '{columna}' ya existía (o error menor): {e}")
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ### 2. Identificar avisos pendientes de limpiar
 # MAGIC Avisos que ya tienen detalle en Bronce, pero todavía no están en
 # MAGIC `avisos_limpios`. Si la tabla no existe todavía (primera corrida), todos
@@ -74,6 +103,7 @@ spark.sql(f"""
         a.moneda,
         a.ubicacion,
         a.first_seen,
+        a.url,
         a.superficie_m2 AS superficie_m2_texto,
         d.descripcion,
         d.fecha_publicacion_texto,
@@ -102,7 +132,9 @@ spark.sql(f"""
         d.barrio,
         d.latitud   AS latitud_texto,
         d.longitud  AS longitud_texto,
-        a.estado_publicacion,
+        d.estado_publicacion,
+        a._sistema_origen,
+        a._id_corrida,
         d.cantidad_paraderos, d.distancia_min_m_paraderos,
         d.cantidad_estaciones_metro, d.distancia_min_m_estaciones_metro,
         d.cantidad_jardines_infantiles, d.distancia_min_m_jardines_infantiles,
@@ -282,8 +314,9 @@ if spark.catalog.tableExists(tabla_plata):
     """)
 else:
     spark.sql(f"""
-        CREATE TABLE {tabla_plata} AS
-        SELECT * FROM pendientes_precio_clp
+        CREATE TABLE {tabla_plata}
+        PARTITIONED BY (fecha_publicacion_aprox)
+        AS SELECT * FROM pendientes_precio_clp
     """)
 
 print(f"Procesadas {spark.table('pendientes_precio_clp').count()} filas.")
@@ -291,7 +324,18 @@ print(f"Procesadas {spark.table('pendientes_precio_clp').count()} filas.")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 8. Verificar
+# MAGIC ### 8. Compactar (OPTIMIZE)
+# MAGIC Cada corrida incremental agrega archivos chicos; se compactan
+# MAGIC periódicamente para que las lecturas no se degraden con el tiempo.
+
+# COMMAND ----------
+
+spark.sql(f"OPTIMIZE {tabla_plata} ZORDER BY (id_aviso)")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### 9. Verificar
 
 # COMMAND ----------
 

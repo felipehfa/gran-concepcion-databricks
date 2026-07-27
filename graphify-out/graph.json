@@ -1,0 +1,985 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "gc_pipeline_notebooks",
+        "label": "Gran Concepci\u00f3n medallion pipeline execution order (10 notebooks)",
+        "nodes": [
+          "01_bronce_00_carga_manual_poligonos_vulnerabilidad_bronce_python",
+          "01_bronce_01_scraper_manual_grilla_bronce_python",
+          "01_bronce_02_scraper_manual_detalle_bronce_python",
+          "02_plata_03_tasas_historicas_plata_python",
+          "02_plata_04_limpieza_plata_sql",
+          "02_plata_05_imputacion_superficie_plata_python",
+          "03_oro_00_carga_manual_poblacion_referencia_oro_python",
+          "03_oro_06_features_oro_sql",
+          "03_oro_07_vulnerabilidad_oro_python",
+          "04_prediccion_08_prediccion_oro_python"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "README.md"
+      },
+      {
+        "id": "gc_volumes_group",
+        "label": "Unity Catalog Volumes supplying non-scraped artifacts (models, shapefile, reference dataset)",
+        "nodes": [
+          "readme_vulnerabilidad_volume",
+          "readme_modelos_volume",
+          "readme_referencia_modelo_volume",
+          "readme_modelo_volume"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "README.md"
+      },
+      {
+        "id": "gc_manual_notebooks",
+        "label": "Manual one-time execution notebooks (setup / retrain-triggered)",
+        "nodes": [
+          "01_bronce_00_carga_manual_poligonos_vulnerabilidad_bronce_python",
+          "03_oro_00_carga_manual_poblacion_referencia_oro_python",
+          "04_prediccion_08_prediccion_oro_python"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 0.9,
+        "source_file": "README.md"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "00_carga_manual_poligonos_vulnerabilidad_bronce_python.py",
+      "file_type": "code",
+      "source_file": "01_bronce/00_carga_manual_poligonos_vulnerabilidad_bronce_python.py",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "01_bronce_00_carga_manual_poligonos_vulnerabilidad_bronce_python",
+      "community": 3,
+      "norm_label": "00_carga_manual_poligonos_vulnerabilidad_bronce_python.py"
+    },
+    {
+      "label": "web_mercator_a_wgs84()",
+      "file_type": "code",
+      "source_file": "01_bronce/00_carga_manual_poligonos_vulnerabilidad_bronce_python.py",
+      "source_location": "L123",
+      "_origin": "ast",
+      "id": "01_bronce_00_carga_manual_poligonos_vulnerabilidad_bronce_python_web_mercator_a_wgs84",
+      "community": 3,
+      "norm_label": "web_mercator_a_wgs84()"
+    },
+    {
+      "label": "03_tasas_historicas_plata_python.py",
+      "file_type": "code",
+      "source_file": "02_plata/03_tasas_historicas_plata_python.py",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "02_plata_03_tasas_historicas_plata_python",
+      "community": 4,
+      "norm_label": "03_tasas_historicas_plata_python.py"
+    },
+    {
+      "label": "04_limpieza_plata_sql.py",
+      "file_type": "code",
+      "source_file": "02_plata/04_limpieza_plata_sql.py",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "02_plata_04_limpieza_plata_sql",
+      "community": 4,
+      "norm_label": "04_limpieza_plata_sql.py"
+    },
+    {
+      "label": "05_imputacion_superficie_plata_python.py",
+      "file_type": "code",
+      "source_file": "02_plata/05_imputacion_superficie_plata_python.py",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "02_plata_05_imputacion_superficie_plata_python",
+      "community": 4,
+      "norm_label": "05_imputacion_superficie_plata_python.py"
+    },
+    {
+      "label": "00_carga_manual_poblacion_referencia_oro_python.py",
+      "file_type": "code",
+      "source_file": "03_oro/00_carga_manual_poblacion_referencia_oro_python.py",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "03_oro_00_carga_manual_poblacion_referencia_oro_python",
+      "community": 5,
+      "norm_label": "00_carga_manual_poblacion_referencia_oro_python.py"
+    },
+    {
+      "label": "06_features_oro_sql.py",
+      "file_type": "code",
+      "source_file": "03_oro/06_features_oro_sql.py",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "03_oro_06_features_oro_sql",
+      "community": 5,
+      "norm_label": "06_features_oro_sql.py"
+    },
+    {
+      "label": "07_vulnerabilidad_oro_python.py",
+      "file_type": "code",
+      "source_file": "03_oro/07_vulnerabilidad_oro_python.py",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "03_oro_07_vulnerabilidad_oro_python",
+      "community": 5,
+      "norm_label": "07_vulnerabilidad_oro_python.py"
+    },
+    {
+      "label": "08_prediccion_oro_python.py",
+      "file_type": "code",
+      "source_file": "04_prediccion/08_prediccion_oro_python.py",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "04_prediccion_08_prediccion_oro_python",
+      "community": 1,
+      "norm_label": "08_prediccion_oro_python.py"
+    },
+    {
+      "label": "gran-concepcion-databricks (project)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L1-L7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_gran_concepcion_databricks_project",
+      "community": 0,
+      "norm_label": "gran-concepcion-databricks (project)"
+    },
+    {
+      "label": "Arquitectura Medall\u00f3n (Bronce/Plata/Oro + Predicci\u00f3n)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L4-L7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_arquitectura_medallon",
+      "community": 1,
+      "norm_label": "arquitectura medallon (bronce/plata/oro + prediccion)"
+    },
+    {
+      "label": "Rationale: replicate scraping+pricing pipeline layer by layer via medallion architecture",
+      "file_type": "rationale",
+      "source_file": "README.md",
+      "source_location": "L4-L7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_rationale_medallion_replica",
+      "community": 1,
+      "norm_label": "rationale: replicate scraping+pricing pipeline layer by layer via medallion architecture"
+    },
+    {
+      "label": "01_bronce/ (raw scraping + vulnerability polygons)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L10-L11",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_01_bronce",
+      "community": 3,
+      "norm_label": "01_bronce/ (raw scraping + vulnerability polygons)"
+    },
+    {
+      "label": "02_plata/ (cleaning, typing, surface imputation)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L12-L13",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_02_plata",
+      "community": 4,
+      "norm_label": "02_plata/ (cleaning, typing, surface imputation)"
+    },
+    {
+      "label": "03_oro/ (feature engineering vs frozen reference population)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L14-L16",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_03_oro",
+      "community": 5,
+      "norm_label": "03_oro/ (feature engineering vs frozen reference population)"
+    },
+    {
+      "label": "04_prediccion/ (LightGBM ensemble inference + calibration)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L17-L18",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_04_prediccion",
+      "community": 1,
+      "norm_label": "04_prediccion/ (lightgbm ensemble inference + calibration)"
+    },
+    {
+      "label": "subir_a_volumes/ (local staging folder for Volume uploads)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L19-L20",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_subir_a_volumes",
+      "community": 6,
+      "norm_label": "subir_a_volumes/ (local staging folder for volume uploads)"
+    },
+    {
+      "label": "01_scraper_manual_grilla_bronce (notebook)",
+      "file_type": "code",
+      "source_file": "README.md",
+      "source_location": "L27",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "01_bronce_01_scraper_manual_grilla_bronce_python",
+      "community": 3,
+      "norm_label": "01_scraper_manual_grilla_bronce (notebook)"
+    },
+    {
+      "label": "02_scraper_manual_detalle_bronce (notebook)",
+      "file_type": "code",
+      "source_file": "README.md",
+      "source_location": "L28",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "01_bronce_02_scraper_manual_detalle_bronce_python",
+      "community": 3,
+      "norm_label": "02_scraper_manual_detalle_bronce (notebook)"
+    },
+    {
+      "label": "Unity Catalog",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L44-L50",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_unity_catalog",
+      "community": 2,
+      "norm_label": "unity catalog"
+    },
+    {
+      "label": "gran_concepcion (Unity Catalog catalog)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L56-L67",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_gran_concepcion_catalog",
+      "community": 2,
+      "norm_label": "gran_concepcion (unity catalog catalog)"
+    },
+    {
+      "label": "Volume: vulnerabilidad (01_bronce)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L71",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_vulnerabilidad_volume",
+      "community": 2,
+      "norm_label": "volume: vulnerabilidad (01_bronce)"
+    },
+    {
+      "label": "Volume: modelos (02_plata)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L72",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_modelos_volume",
+      "community": 2,
+      "norm_label": "volume: modelos (02_plata)"
+    },
+    {
+      "label": "Volume: referencia_modelo (03_oro)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L73",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_referencia_modelo_volume",
+      "community": 2,
+      "norm_label": "volume: referencia_modelo (03_oro)"
+    },
+    {
+      "label": "Volume: modelo (04_prediccion)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L74",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_modelo_volume",
+      "community": 1,
+      "norm_label": "volume: modelo (04_prediccion)"
+    },
+    {
+      "label": "IGVUST shapefile (socio-territorial vulnerability)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L71",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_igvust_shapefile",
+      "community": 2,
+      "norm_label": "igvust shapefile (socio-territorial vulnerability)"
+    },
+    {
+      "label": "LightGBM ensemble model (rent price prediction)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L17,L74",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_lightgbm_ensemble",
+      "community": 1,
+      "norm_label": "lightgbm ensemble model (rent price prediction)"
+    },
+    {
+      "label": "mindicador.cl (UF exchange-rate API)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L88-L89",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_mindicador_cl",
+      "community": 4,
+      "norm_label": "mindicador.cl (uf exchange-rate api)"
+    },
+    {
+      "label": "Databricks Workspace (Unity Catalog enabled)",
+      "file_type": "concept",
+      "source_file": "README.md",
+      "source_location": "L86-L87",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_databricks_workspace",
+      "community": 0,
+      "norm_label": "databricks workspace (unity catalog enabled)"
+    },
+    {
+      "label": "Databricks Asset Bundle: 'databricks'",
+      "file_type": "code",
+      "source_file": "databricks.yml",
+      "source_location": "L5-L6",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "databricks_yml_bundle_databricks",
+      "community": 0,
+      "norm_label": "databricks asset bundle: 'databricks'"
+    },
+    {
+      "label": "Target: dev (development, default)",
+      "file_type": "code",
+      "source_file": "databricks.yml",
+      "source_location": "L9-L13",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "databricks_yml_target_dev",
+      "community": 0,
+      "norm_label": "target: dev (development, default)"
+    },
+    {
+      "label": "Databricks Asset Bundle (DAB) concept",
+      "file_type": "concept",
+      "source_file": "databricks.yml",
+      "source_location": "L1-L3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "databricks_yml_databricks_asset_bundle",
+      "community": 0,
+      "norm_label": "databricks asset bundle (dab) concept"
+    },
+    {
+      "label": "Databricks Bundles documentation",
+      "file_type": "document",
+      "source_file": "databricks.yml",
+      "source_location": "L3",
+      "source_url": "https://docs.databricks.com/dev-tools/bundles/index.html",
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "databricks_yml_bundles_documentation",
+      "community": 0,
+      "norm_label": "databricks bundles documentation"
+    },
+    {
+      "label": "Rationale: only 'dev' target defined; staging/prod optionally addable later",
+      "file_type": "rationale",
+      "source_file": "databricks.yml",
+      "source_location": "L15-L19",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "databricks_yml_rationale_single_target",
+      "community": 0,
+      "norm_label": "rationale: only 'dev' target defined; staging/prod optionally addable later"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "01_bronce/00_carga_manual_poligonos_vulnerabilidad_bronce_python.py",
+      "source_location": "L123",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "01_bronce_00_carga_manual_poligonos_vulnerabilidad_bronce_python",
+      "target": "01_bronce_00_carga_manual_poligonos_vulnerabilidad_bronce_python_web_mercator_a_wgs84",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "README.md",
+      "source_location": "L14-L16,L26,L34",
+      "weight": 1.0,
+      "source": "01_bronce_00_carga_manual_poligonos_vulnerabilidad_bronce_python",
+      "target": "03_oro_07_vulnerabilidad_oro_python"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "readme_01_bronce",
+      "target": "01_bronce_00_carga_manual_poligonos_vulnerabilidad_bronce_python"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L71",
+      "weight": 1.0,
+      "source": "readme_vulnerabilidad_volume",
+      "target": "01_bronce_00_carga_manual_poligonos_vulnerabilidad_bronce_python"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "README.md",
+      "source_location": "L24-L36",
+      "weight": 1.0,
+      "source": "01_bronce_02_scraper_manual_detalle_bronce_python",
+      "target": "02_plata_03_tasas_historicas_plata_python"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "README.md",
+      "source_location": "L24-L36",
+      "weight": 1.0,
+      "source": "02_plata_03_tasas_historicas_plata_python",
+      "target": "02_plata_04_limpieza_plata_sql"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "README.md",
+      "source_location": "L29,L88-L89",
+      "weight": 1.0,
+      "source": "02_plata_03_tasas_historicas_plata_python",
+      "target": "readme_mindicador_cl"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "readme_02_plata",
+      "target": "02_plata_03_tasas_historicas_plata_python"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "README.md",
+      "source_location": "L24-L36",
+      "weight": 1.0,
+      "source": "02_plata_04_limpieza_plata_sql",
+      "target": "02_plata_05_imputacion_superficie_plata_python"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "readme_02_plata",
+      "target": "02_plata_04_limpieza_plata_sql"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "README.md",
+      "source_location": "L24-L36",
+      "weight": 1.0,
+      "source": "02_plata_05_imputacion_superficie_plata_python",
+      "target": "03_oro_06_features_oro_sql"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "README.md",
+      "source_location": "L13,L17",
+      "weight": 1.0,
+      "source": "02_plata_05_imputacion_superficie_plata_python",
+      "target": "04_prediccion_08_prediccion_oro_python"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "readme_02_plata",
+      "target": "02_plata_05_imputacion_superficie_plata_python"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "readme_modelos_volume",
+      "target": "02_plata_05_imputacion_superficie_plata_python"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L14-L16,L32-L33",
+      "weight": 1.0,
+      "source": "03_oro_00_carga_manual_poblacion_referencia_oro_python",
+      "target": "03_oro_06_features_oro_sql"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "readme_03_oro",
+      "target": "03_oro_00_carga_manual_poblacion_referencia_oro_python"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L73",
+      "weight": 1.0,
+      "source": "readme_referencia_modelo_volume",
+      "target": "03_oro_00_carga_manual_poblacion_referencia_oro_python"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "README.md",
+      "source_location": "L24-L36",
+      "weight": 1.0,
+      "source": "03_oro_06_features_oro_sql",
+      "target": "03_oro_07_vulnerabilidad_oro_python"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "readme_03_oro",
+      "target": "03_oro_06_features_oro_sql"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "README.md",
+      "source_location": "L24-L36",
+      "weight": 1.0,
+      "source": "03_oro_07_vulnerabilidad_oro_python",
+      "target": "04_prediccion_08_prediccion_oro_python"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L34",
+      "weight": 1.0,
+      "source": "readme_03_oro",
+      "target": "03_oro_07_vulnerabilidad_oro_python"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "readme_04_prediccion",
+      "target": "04_prediccion_08_prediccion_oro_python"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L74",
+      "weight": 1.0,
+      "source": "readme_modelo_volume",
+      "target": "04_prediccion_08_prediccion_oro_python"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "databricks.yml",
+      "source_location": "L9-L13",
+      "weight": 1.0,
+      "source": "databricks_yml_target_dev",
+      "target": "readme_gran_concepcion_databricks_project"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L4-L7",
+      "weight": 1.0,
+      "source": "readme_gran_concepcion_databricks_project",
+      "target": "readme_arquitectura_medallon"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L86-L87",
+      "weight": 1.0,
+      "source": "readme_gran_concepcion_databricks_project",
+      "target": "readme_databricks_workspace"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L10-L11",
+      "weight": 1.0,
+      "source": "readme_arquitectura_medallon",
+      "target": "readme_01_bronce"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L12-L13",
+      "weight": 1.0,
+      "source": "readme_arquitectura_medallon",
+      "target": "readme_02_plata"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L14-L16",
+      "weight": 1.0,
+      "source": "readme_arquitectura_medallon",
+      "target": "readme_03_oro"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L17-L18",
+      "weight": 1.0,
+      "source": "readme_arquitectura_medallon",
+      "target": "readme_04_prediccion"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L4-L7",
+      "weight": 1.0,
+      "source": "readme_rationale_medallion_replica",
+      "target": "readme_arquitectura_medallon"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "readme_01_bronce",
+      "target": "01_bronce_01_scraper_manual_grilla_bronce_python"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "readme_01_bronce",
+      "target": "01_bronce_02_scraper_manual_detalle_bronce_python"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "README.md",
+      "source_location": "L24-L36",
+      "weight": 1.0,
+      "source": "01_bronce_01_scraper_manual_grilla_bronce_python",
+      "target": "01_bronce_02_scraper_manual_detalle_bronce_python"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L44-L50,L86",
+      "weight": 1.0,
+      "source": "readme_gran_concepcion_catalog",
+      "target": "readme_unity_catalog"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L65-L66",
+      "weight": 1.0,
+      "source": "readme_gran_concepcion_catalog",
+      "target": "readme_modelo_volume"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L59-L60",
+      "weight": 1.0,
+      "source": "readme_gran_concepcion_catalog",
+      "target": "readme_modelos_volume"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L62-L63",
+      "weight": 1.0,
+      "source": "readme_gran_concepcion_catalog",
+      "target": "readme_referencia_modelo_volume"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L56-L57",
+      "weight": 1.0,
+      "source": "readme_gran_concepcion_catalog",
+      "target": "readme_vulnerabilidad_volume"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L71",
+      "weight": 1.0,
+      "source": "readme_igvust_shapefile",
+      "target": "readme_vulnerabilidad_volume"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L74",
+      "weight": 1.0,
+      "source": "readme_lightgbm_ensemble",
+      "target": "readme_modelo_volume"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "databricks.yml",
+      "source_location": "L12-L13",
+      "weight": 1.0,
+      "source": "databricks_yml_target_dev",
+      "target": "readme_databricks_workspace"
+    },
+    {
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "databricks.yml",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "databricks_yml_bundle_databricks",
+      "target": "databricks_yml_bundles_documentation"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "databricks.yml",
+      "source_location": "L1-L6",
+      "weight": 1.0,
+      "source": "databricks_yml_bundle_databricks",
+      "target": "databricks_yml_databricks_asset_bundle"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "databricks.yml",
+      "source_location": "L5-L13",
+      "weight": 1.0,
+      "source": "databricks_yml_bundle_databricks",
+      "target": "databricks_yml_target_dev"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "databricks.yml",
+      "source_location": "L15-L19",
+      "weight": 1.0,
+      "source": "databricks_yml_rationale_single_target",
+      "target": "databricks_yml_target_dev"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "gc_pipeline_notebooks",
+      "label": "Gran Concepci\u00f3n medallion pipeline execution order (10 notebooks)",
+      "nodes": [
+        "01_bronce_00_carga_manual_poligonos_vulnerabilidad_bronce_python",
+        "01_bronce_01_scraper_manual_grilla_bronce_python",
+        "01_bronce_02_scraper_manual_detalle_bronce_python",
+        "02_plata_03_tasas_historicas_plata_python",
+        "02_plata_04_limpieza_plata_sql",
+        "02_plata_05_imputacion_superficie_plata_python",
+        "03_oro_00_carga_manual_poblacion_referencia_oro_python",
+        "03_oro_06_features_oro_sql",
+        "03_oro_07_vulnerabilidad_oro_python",
+        "04_prediccion_08_prediccion_oro_python"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    },
+    {
+      "id": "gc_volumes_group",
+      "label": "Unity Catalog Volumes supplying non-scraped artifacts (models, shapefile, reference dataset)",
+      "nodes": [
+        "readme_vulnerabilidad_volume",
+        "readme_modelos_volume",
+        "readme_referencia_modelo_volume",
+        "readme_modelo_volume"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    },
+    {
+      "id": "gc_manual_notebooks",
+      "label": "Manual one-time execution notebooks (setup / retrain-triggered)",
+      "nodes": [
+        "01_bronce_00_carga_manual_poligonos_vulnerabilidad_bronce_python",
+        "03_oro_00_carga_manual_poblacion_referencia_oro_python",
+        "04_prediccion_08_prediccion_oro_python"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.9,
+      "source_file": "README.md"
+    }
+  ],
+  "built_at_commit": "12e82bdd69874a818dabd8e324655de2208630ac"
+}
