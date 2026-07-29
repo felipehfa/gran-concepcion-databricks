@@ -1,1 +1,0 @@
-{"0": "Configuracion del Bundle Databricks", "1": "Capa de Prediccion (Oro -> Prediccion)", "2": "Unity Catalog y Volumes", "3": "Capa Bronce (scraping crudo)", "4": "Capa Plata (limpieza y tipado)", "5": "Capa Oro (features vs poblacion de referencia)", "6": "Carpeta local subir_a_volumes"}
