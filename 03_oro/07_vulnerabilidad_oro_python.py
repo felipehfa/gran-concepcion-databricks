@@ -197,6 +197,15 @@ else:
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC #### Chequeo de duplicados (inspección manual)
+# MAGIC `id_aviso` es la clave de upsert del `MERGE` de abajo — si esta consulta
+# MAGIC devuelve alguna fila, `avisos_features` tiene un `id_aviso` repetido (no
+# MAGIC debería pasar nunca, dado el dedup de `06_features_oro_sql.py` sección
+# MAGIC 15) y el `MERGE` fallaría con "multiple source rows matched".
+
+# COMMAND ----------
+
 # MAGIC %sql
 # MAGIC SELECT id_aviso, COUNT(*) AS veces
 # MAGIC FROM gran_concepcion.03_oro.avisos_features

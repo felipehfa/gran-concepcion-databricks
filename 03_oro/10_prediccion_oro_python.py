@@ -261,7 +261,10 @@ if len(pendientes_df) > 0:
     umbral_caro = calibracion["umbral_caro"]
 
     decil = pd.cut(pendientes_df["costo_total_real"], bins=bordes_deciles, labels=False, include_lowest=True)
-    pendientes_df["decil_precio"] = decil.astype(int)
+    # int32 (no el "int"/int64 default de pandas) para calzar exacto con la
+    # columna INT de `predicciones` — evita depender del cast implícito
+    # BIGINT->INT que haría Spark si spark.createDataFrame infiriera int64.
+    pendientes_df["decil_precio"] = decil.astype("int32")
 
     idx_confianza = pd.cut(pendientes_df["cv_ensamble"], bins=bordes_cv, labels=False, include_lowest=True)
     pendientes_df["nivel_confianza"] = idx_confianza.map(lambda i: etiquetas_confianza[int(i)])
@@ -344,11 +347,14 @@ if len(pendientes_df) > 0:
 # MAGIC ### 11. Compactar (OPTIMIZE)
 # MAGIC Cada corrida incremental (y la migración de la sección 3) agrega
 # MAGIC archivos chicos; se compactan periódicamente para que las lecturas no se
-# MAGIC degraden con el tiempo.
+# MAGIC degraden con el tiempo. `ZORDER BY (id_aviso)`, no `version_modelo`: la
+# MAGIC tabla ya está `PARTITIONED BY (version_modelo)` y Delta prohíbe
+# MAGIC Z-ORDER sobre la columna de partición
+# MAGIC (`DELTA_ZORDERING_ON_PARTITION_COLUMN`).
 
 # COMMAND ----------
 
-spark.sql("OPTIMIZE gran_concepcion.03_oro.predicciones ZORDER BY (version_modelo)")
+spark.sql("OPTIMIZE gran_concepcion.03_oro.predicciones ZORDER BY (id_aviso)")
 
 # COMMAND ----------
 

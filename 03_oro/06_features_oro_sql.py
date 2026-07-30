@@ -99,13 +99,35 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC casos de dormitorios/baños/estacionamientos extremos ya quedaron en NULL
 # MAGIC desde Plata (paso 5 de `04_limpieza_plata_sql`), así que ya caen en el
 # MAGIC primer filtro.
+# MAGIC
+# MAGIC También anula `latitud`/`longitud` fuera de la caja de sanidad geográfica
+# MAGIC del Gran Concepción (mismos límites que `CAJA_LATITUD_GRAN_CONCEPCION`/
+# MAGIC `CAJA_LONGITUD_GRAN_CONCEPCION` del proyecto original — caso real que
+# MAGIC motivó el filtro allá: un aviso con coordenadas en Madrid produciendo una
+# MAGIC `distancia_centro_concepcion_m` de ~11.000 km). A diferencia del original
+# MAGIC (que descarta la fila completa de su dataset de entrenamiento), acá se
+# MAGIC anulan solo las coordenadas: el aviso se sigue prediciendo, y las
+# MAGIC features de distancia/vecinos quedan en NULL con el mismo fallback que ya
+# MAGIC usa cualquier aviso sin coordenadas.
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC CREATE OR REPLACE TEMP VIEW plata_pendiente_geo_sano AS
+# MAGIC SELECT
+# MAGIC     * EXCEPT (latitud, longitud),
+# MAGIC     CASE WHEN latitud BETWEEN -37.5 AND -36.0 AND longitud BETWEEN -73.7 AND -72.5
+# MAGIC          THEN latitud END AS latitud,
+# MAGIC     CASE WHEN latitud BETWEEN -37.5 AND -36.0 AND longitud BETWEEN -73.7 AND -72.5
+# MAGIC          THEN longitud END AS longitud
+# MAGIC FROM plata_pendiente
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC CREATE OR REPLACE TEMP VIEW pendientes_validos AS
 # MAGIC SELECT *
-# MAGIC FROM plata_pendiente
+# MAGIC FROM plata_pendiente_geo_sano
 # MAGIC WHERE dormitorios IS NOT NULL
 # MAGIC   AND banos IS NOT NULL
 # MAGIC   AND NOT (superficie_util_m2 IS NULL AND superficie_total_m2 IS NULL AND superficie_m2 IS NULL)
@@ -179,6 +201,18 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC Ausencia de dato equivale a "no tiene"/"no hay ninguno cerca", mismo
 # MAGIC criterio que `normalizar_columnas_nuevas` del original — reemplaza los
 # MAGIC valores NULL que trae Plata por 0, en vez de dejarlos sin resolver.
+# MAGIC
+# MAGIC Las 11 columnas `cantidad_*` (mismo set que `columnas_cantidad` en
+# MAGIC `01_ingenieria_variables.py` del original) ya se tipan con `TRY_CAST` en
+# MAGIC Plata (`04_limpieza_plata_sql.py`), pero `avisos_limpios.cantidad_*` es
+# MAGIC una tabla Delta ya desplegada con esas columnas como STRING — un
+# MAGIC `ALTER`/recreación de esquema pendiente, no algo que este notebook pueda
+# MAGIC asumir ya resuelto. Confirmado contra datos reales: TODOS los avisos
+# MAGIC traen `"5.0"` (con punto decimal), y un `CAST(... AS INT)` directo sobre
+# MAGIC eso revienta con `CAST_INVALID_INPUT` en modo ANSI (activo por default en
+# MAGIC serverless). Por eso acá se mantiene `TRY_CAST(... AS DOUBLE)` como red de
+# MAGIC seguridad, independiente de si la columna de origen es STRING o ya DOUBLE
+# MAGIC — es un no-op si ya viene tipada, y evita el crash si no.
 
 # COMMAND ----------
 
@@ -189,9 +223,10 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC     * EXCEPT (
 # MAGIC         estacionamientos, bodegas, conserjeria, estacionamiento_visitas,
 # MAGIC         condominio_cerrado, piscina, ascensor, gastos_comunes,
-# MAGIC         cantidad_paraderos, cantidad_jardines_infantiles, cantidad_colegios,
-# MAGIC         cantidad_universidades, cantidad_plazas, cantidad_supermercados,
-# MAGIC         cantidad_farmacias, cantidad_centros_comerciales, cantidad_clinicas
+# MAGIC         cantidad_paraderos, cantidad_estaciones_metro, cantidad_jardines_infantiles,
+# MAGIC         cantidad_colegios, cantidad_universidades, cantidad_plazas,
+# MAGIC         cantidad_supermercados, cantidad_farmacias, cantidad_centros_comerciales,
+# MAGIC         cantidad_hospitales, cantidad_clinicas
 # MAGIC     ),
 # MAGIC     COALESCE(estacionamientos, 0)            AS estacionamientos,
 # MAGIC     COALESCE(bodegas, 0)                     AS bodegas,
@@ -201,15 +236,17 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC     COALESCE(piscina, 0)                     AS piscina,
 # MAGIC     COALESCE(ascensor, 0)                    AS ascensor,
 # MAGIC     COALESCE(gastos_comunes, 0)              AS gastos_comunes,
-# MAGIC     COALESCE(CAST(cantidad_paraderos AS INT), 0)          AS cantidad_paraderos,
-# MAGIC     COALESCE(CAST(cantidad_jardines_infantiles AS INT), 0) AS cantidad_jardines_infantiles,
-# MAGIC     COALESCE(CAST(cantidad_colegios AS INT), 0)           AS cantidad_colegios,
-# MAGIC     COALESCE(CAST(cantidad_universidades AS INT), 0)      AS cantidad_universidades,
-# MAGIC     COALESCE(CAST(cantidad_plazas AS INT), 0)              AS cantidad_plazas,
-# MAGIC     COALESCE(CAST(cantidad_supermercados AS INT), 0)      AS cantidad_supermercados,
-# MAGIC     COALESCE(CAST(cantidad_farmacias AS INT), 0)          AS cantidad_farmacias,
-# MAGIC     COALESCE(CAST(cantidad_centros_comerciales AS INT), 0) AS cantidad_centros_comerciales,
-# MAGIC     COALESCE(CAST(cantidad_clinicas AS INT), 0)           AS cantidad_clinicas
+# MAGIC     COALESCE(CAST(TRY_CAST(cantidad_paraderos AS DOUBLE) AS INT), 0)             AS cantidad_paraderos,
+# MAGIC     COALESCE(CAST(TRY_CAST(cantidad_estaciones_metro AS DOUBLE) AS INT), 0)      AS cantidad_estaciones_metro,
+# MAGIC     COALESCE(CAST(TRY_CAST(cantidad_jardines_infantiles AS DOUBLE) AS INT), 0)   AS cantidad_jardines_infantiles,
+# MAGIC     COALESCE(CAST(TRY_CAST(cantidad_colegios AS DOUBLE) AS INT), 0)              AS cantidad_colegios,
+# MAGIC     COALESCE(CAST(TRY_CAST(cantidad_universidades AS DOUBLE) AS INT), 0)         AS cantidad_universidades,
+# MAGIC     COALESCE(CAST(TRY_CAST(cantidad_plazas AS DOUBLE) AS INT), 0)                AS cantidad_plazas,
+# MAGIC     COALESCE(CAST(TRY_CAST(cantidad_supermercados AS DOUBLE) AS INT), 0)         AS cantidad_supermercados,
+# MAGIC     COALESCE(CAST(TRY_CAST(cantidad_farmacias AS DOUBLE) AS INT), 0)             AS cantidad_farmacias,
+# MAGIC     COALESCE(CAST(TRY_CAST(cantidad_centros_comerciales AS DOUBLE) AS INT), 0)   AS cantidad_centros_comerciales,
+# MAGIC     COALESCE(CAST(TRY_CAST(cantidad_hospitales AS DOUBLE) AS INT), 0)            AS cantidad_hospitales,
+# MAGIC     COALESCE(CAST(TRY_CAST(cantidad_clinicas AS DOUBLE) AS INT), 0)              AS cantidad_clinicas
 # MAGIC FROM pendientes_distancias
 
 # COMMAND ----------
@@ -301,13 +338,37 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 11. `antiguedad_anos`: vecinos dentro de 200m EN LA POBLACIÓN DE REFERENCIA
-# MAGIC Si el aviso ya trae antigüedad, se deja tal cual. Si no, se busca la
-# MAGIC mediana de los avisos de `poblacion_referencia` (no de Plata) dentro de
-# MAGIC 200 metros; si no hay ninguno, mediana por comuna de la referencia; si
-# MAGIC tampoco, mediana global de la referencia. Cascada calculada sobre los
-# MAGIC valores ORIGINALES de la referencia (ya vienen sin nulos: la población de
-# MAGIC referencia se cargó ya imputada).
+# MAGIC ### 11. `antiguedad_anos`: cascada EN LA POBLACIÓN DE REFERENCIA
+# MAGIC Si el aviso ya trae antigüedad, se deja tal cual. Si no, cascada de
+# MAGIC fallbacks contra `poblacion_referencia` (no contra Plata), igual orden que
+# MAGIC el original: 1) coordenada EXACTA (mismo edificio/condominio — ahí el
+# MAGIC original usa moda en vez de mediana, pero como en la práctica todos los
+# MAGIC avisos de un mismo edificio comparten la misma antigüedad, la mediana da
+# MAGIC el mismo resultado); 2) mediana de vecinos dentro de 200 metros; 3)
+# MAGIC mediana por comuna de la referencia; 4) mediana global de la referencia.
+# MAGIC Cascada calculada sobre los valores ORIGINALES de la referencia (ya
+# MAGIC vienen sin nulos: la población de referencia se cargó ya imputada).
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC CREATE OR REPLACE TEMP VIEW candidatos_antiguedad_exacta AS
+# MAGIC SELECT
+# MAGIC     p.id_aviso,
+# MAGIC     r.antiguedad_anos AS antiguedad_vecino
+# MAGIC FROM pendientes_piso p
+# MAGIC INNER JOIN gran_concepcion.03_oro.poblacion_referencia r
+# MAGIC     ON p.latitud IS NOT NULL AND p.longitud IS NOT NULL
+# MAGIC     AND r.latitud = p.latitud AND r.longitud = p.longitud
+# MAGIC WHERE p.antiguedad_anos IS NULL
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC CREATE OR REPLACE TEMP VIEW antiguedad_exacta AS
+# MAGIC SELECT id_aviso, PERCENTILE_APPROX(antiguedad_vecino, 0.5) AS antiguedad_exacta_mediana
+# MAGIC FROM candidatos_antiguedad_exacta
+# MAGIC GROUP BY id_aviso
 
 # COMMAND ----------
 
@@ -344,11 +405,13 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC     p.* EXCEPT (antiguedad_anos),
 # MAGIC     COALESCE(
 # MAGIC         p.antiguedad_anos,
+# MAGIC         ae.antiguedad_exacta_mediana,
 # MAGIC         av.antiguedad_vecinos_mediana,
 # MAGIC         cs.mediana_antiguedad,
 # MAGIC         e.mediana_antiguedad_global
 # MAGIC     ) AS antiguedad_anos
 # MAGIC FROM pendientes_piso p
+# MAGIC LEFT JOIN antiguedad_exacta ae ON p.id_aviso = ae.id_aviso
 # MAGIC LEFT JOIN antiguedad_vecinos av ON p.id_aviso = av.id_aviso
 # MAGIC LEFT JOIN gran_concepcion.03_oro.referencia_estadisticas_por_comuna cs ON p.comuna = cs.comuna
 # MAGIC CROSS JOIN referencia_escalares e
@@ -427,6 +490,10 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 
 # MAGIC %md
 # MAGIC ### 14. Crear la tabla de Oro (si no existe) e insertar los avisos nuevos
+# MAGIC Mismo patrón incremental que el resto del pipeline (ver
+# MAGIC `.claude/rules/patron-incremental.md`): `CREATE TABLE ... AS SELECT` si
+# MAGIC `avisos_features` no existe todavía (primera corrida), `INSERT INTO` con
+# MAGIC columnas explícitas si ya existe.
 
 # COMMAND ----------
 
@@ -446,6 +513,15 @@ else:
     """)
 
 print(f"Procesadas {spark.table('pendientes_oro').count()} filas.")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Chequeo de esquema (inspección manual)
+# MAGIC Compara el esquema de lo recién insertado contra el de la tabla ya
+# MAGIC existente — útil al correr el notebook a mano para detectar de inmediato
+# MAGIC una columna con el tipo equivocado, antes de llegar a la verificación
+# MAGIC final de la sección 17.
 
 # COMMAND ----------
 

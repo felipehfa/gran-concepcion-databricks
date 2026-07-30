@@ -13,8 +13,10 @@
 # MAGIC `fecha_limpieza_plata`, la fecha/hora exacta en que se procesó.
 # MAGIC
 # MAGIC Esta capa solo parsea y tipa los datos crudos de Bronce (números en
-# MAGIC formato chileno, booleanos "Sí"/"No", conversión de precio a CLP). No
-# MAGIC imputa ni descarta nada todavía: eso ocurre después, en la etapa de
+# MAGIC formato chileno, booleanos "Sí"/"No", conversión de precio a CLP,
+# MAGIC conteos/distancias de amenities y POIs). Todo el tipado del pipeline pasa
+# MAGIC por acá — Oro nunca castea un STRING crudo de Bronce, solo consume
+# MAGIC columnas ya tipadas de `avisos_limpios`. No imputa ni descarta nada todavía: eso ocurre después, en la etapa de
 # MAGIC features de Oro, contra la población de referencia congelada del modelo
 # MAGIC (ver `03_oro/06_features_oro_sql.py`) — así el aviso que llega a Oro se
 # MAGIC puntúa exactamente igual que en el proyecto original, sea cual sea el
@@ -135,17 +137,28 @@ spark.sql(f"""
         d.estado_publicacion,
         a._sistema_origen,
         a._id_corrida,
-        d.cantidad_paraderos, d.distancia_min_m_paraderos,
-        d.cantidad_estaciones_metro, d.distancia_min_m_estaciones_metro,
-        d.cantidad_jardines_infantiles, d.distancia_min_m_jardines_infantiles,
-        d.cantidad_colegios, d.distancia_min_m_colegios,
-        d.cantidad_universidades, d.distancia_min_m_universidades,
-        d.cantidad_plazas, d.distancia_min_m_plazas,
-        d.cantidad_supermercados, d.distancia_min_m_supermercados,
-        d.cantidad_farmacias, d.distancia_min_m_farmacias,
-        d.cantidad_centros_comerciales, d.distancia_min_m_centros_comerciales,
-        d.cantidad_hospitales, d.distancia_min_m_hospitales,
-        d.cantidad_clinicas, d.distancia_min_m_clinicas
+        d.cantidad_paraderos AS cantidad_paraderos_texto,
+        d.distancia_min_m_paraderos AS distancia_min_m_paraderos_texto,
+        d.cantidad_estaciones_metro AS cantidad_estaciones_metro_texto,
+        d.distancia_min_m_estaciones_metro AS distancia_min_m_estaciones_metro_texto,
+        d.cantidad_jardines_infantiles AS cantidad_jardines_infantiles_texto,
+        d.distancia_min_m_jardines_infantiles AS distancia_min_m_jardines_infantiles_texto,
+        d.cantidad_colegios AS cantidad_colegios_texto,
+        d.distancia_min_m_colegios AS distancia_min_m_colegios_texto,
+        d.cantidad_universidades AS cantidad_universidades_texto,
+        d.distancia_min_m_universidades AS distancia_min_m_universidades_texto,
+        d.cantidad_plazas AS cantidad_plazas_texto,
+        d.distancia_min_m_plazas AS distancia_min_m_plazas_texto,
+        d.cantidad_supermercados AS cantidad_supermercados_texto,
+        d.distancia_min_m_supermercados AS distancia_min_m_supermercados_texto,
+        d.cantidad_farmacias AS cantidad_farmacias_texto,
+        d.distancia_min_m_farmacias AS distancia_min_m_farmacias_texto,
+        d.cantidad_centros_comerciales AS cantidad_centros_comerciales_texto,
+        d.distancia_min_m_centros_comerciales AS distancia_min_m_centros_comerciales_texto,
+        d.cantidad_hospitales AS cantidad_hospitales_texto,
+        d.distancia_min_m_hospitales AS distancia_min_m_hospitales_texto,
+        d.cantidad_clinicas AS cantidad_clinicas_texto,
+        d.distancia_min_m_clinicas AS distancia_min_m_clinicas_texto
     FROM gran_concepcion.01_bronce.avisos a
     INNER JOIN gran_concepcion.01_bronce.avisos_detalle d ON a.id_aviso = d.id_aviso
     {condicion_pendientes}
@@ -190,6 +203,28 @@ print(f"{spark.table('base_avisos_pendientes').count()} avisos pendientes de lim
 # MAGIC     TRY_CAST(deptos_por_piso_texto AS DOUBLE)  AS deptos_por_piso,
 # MAGIC     TRY_CAST(latitud_texto AS DOUBLE)  AS latitud,
 # MAGIC     TRY_CAST(longitud_texto AS DOUBLE) AS longitud,
+# MAGIC     TRY_CAST(cantidad_paraderos_texto AS DOUBLE)             AS cantidad_paraderos,
+# MAGIC     TRY_CAST(distancia_min_m_paraderos_texto AS DOUBLE)      AS distancia_min_m_paraderos,
+# MAGIC     TRY_CAST(cantidad_estaciones_metro_texto AS DOUBLE)      AS cantidad_estaciones_metro,
+# MAGIC     TRY_CAST(distancia_min_m_estaciones_metro_texto AS DOUBLE) AS distancia_min_m_estaciones_metro,
+# MAGIC     TRY_CAST(cantidad_jardines_infantiles_texto AS DOUBLE)   AS cantidad_jardines_infantiles,
+# MAGIC     TRY_CAST(distancia_min_m_jardines_infantiles_texto AS DOUBLE) AS distancia_min_m_jardines_infantiles,
+# MAGIC     TRY_CAST(cantidad_colegios_texto AS DOUBLE)              AS cantidad_colegios,
+# MAGIC     TRY_CAST(distancia_min_m_colegios_texto AS DOUBLE)       AS distancia_min_m_colegios,
+# MAGIC     TRY_CAST(cantidad_universidades_texto AS DOUBLE)         AS cantidad_universidades,
+# MAGIC     TRY_CAST(distancia_min_m_universidades_texto AS DOUBLE)  AS distancia_min_m_universidades,
+# MAGIC     TRY_CAST(cantidad_plazas_texto AS DOUBLE)                AS cantidad_plazas,
+# MAGIC     TRY_CAST(distancia_min_m_plazas_texto AS DOUBLE)         AS distancia_min_m_plazas,
+# MAGIC     TRY_CAST(cantidad_supermercados_texto AS DOUBLE)         AS cantidad_supermercados,
+# MAGIC     TRY_CAST(distancia_min_m_supermercados_texto AS DOUBLE)  AS distancia_min_m_supermercados,
+# MAGIC     TRY_CAST(cantidad_farmacias_texto AS DOUBLE)             AS cantidad_farmacias,
+# MAGIC     TRY_CAST(distancia_min_m_farmacias_texto AS DOUBLE)      AS distancia_min_m_farmacias,
+# MAGIC     TRY_CAST(cantidad_centros_comerciales_texto AS DOUBLE)   AS cantidad_centros_comerciales,
+# MAGIC     TRY_CAST(distancia_min_m_centros_comerciales_texto AS DOUBLE) AS distancia_min_m_centros_comerciales,
+# MAGIC     TRY_CAST(cantidad_hospitales_texto AS DOUBLE)            AS cantidad_hospitales,
+# MAGIC     TRY_CAST(distancia_min_m_hospitales_texto AS DOUBLE)     AS distancia_min_m_hospitales,
+# MAGIC     TRY_CAST(cantidad_clinicas_texto AS DOUBLE)              AS cantidad_clinicas,
+# MAGIC     TRY_CAST(distancia_min_m_clinicas_texto AS DOUBLE)       AS distancia_min_m_clinicas,
 # MAGIC     CASE WHEN lower(amoblado_texto) IN ('sí', 'si') THEN 1
 # MAGIC          WHEN lower(amoblado_texto) = 'no' THEN 0 END AS amoblado,
 # MAGIC     CASE WHEN lower(admite_mascotas_texto) IN ('sí', 'si') THEN 1
@@ -275,6 +310,13 @@ print(f"{spark.table('base_avisos_pendientes').count()} avisos pendientes de lim
 # MAGIC CLP usando la tasa vigente el día de la publicación del aviso (fecha
 # MAGIC exacta, no "la más reciente disponible"). Se agrega acá mismo
 # MAGIC `fecha_limpieza_plata`, el momento exacto en que el aviso entró a Plata.
+# MAGIC
+# MAGIC `fecha_publicacion_aprox`/`first_seen` llegan como STRING desde Bronce
+# MAGIC (ISO `yyyy-MM-dd`); el join contra `valores_pesos.fecha_valor` (`DATE`)
+# MAGIC se hace con `TRY_CAST(... AS DATE)` explícito en vez de dejar que Spark
+# MAGIC castee implícitamente el STRING al comparar — mismo motivo que el fix de
+# MAGIC `CAST_INVALID_INPUT` en Oro: un string mal formado en modo ANSI revienta
+# MAGIC la corrida en vez de simplemente no encontrar match.
 
 # COMMAND ----------
 
@@ -292,7 +334,7 @@ print(f"{spark.table('base_avisos_pendientes').count()} avisos pendientes de lim
 # MAGIC     CURRENT_TIMESTAMP() AS fecha_limpieza_plata
 # MAGIC FROM pendientes_filtrados av
 # MAGIC LEFT JOIN gran_concepcion.02_plata.valores_pesos tasas
-# MAGIC     ON tasas.fecha_valor = COALESCE(av.fecha_publicacion_aprox, av.first_seen)
+# MAGIC     ON tasas.fecha_valor = TRY_CAST(COALESCE(av.fecha_publicacion_aprox, av.first_seen) AS DATE)
 
 # COMMAND ----------
 

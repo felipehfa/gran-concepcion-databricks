@@ -157,8 +157,9 @@ spark.createDataFrame(df_plata).createOrReplaceTempView("avisos_util_imputada_tm
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE gran_concepcion.02_plata.avisos_limpios AS
-# MAGIC SELECT * FROM avisos_util_imputada_tmp
+# MAGIC CREATE OR REPLACE TABLE gran_concepcion.02_plata.avisos_limpios
+# MAGIC PARTITIONED BY (fecha_publicacion_aprox)
+# MAGIC AS SELECT * FROM avisos_util_imputada_tmp
 
 # COMMAND ----------
 
@@ -254,8 +255,9 @@ spark.createDataFrame(df_plata).createOrReplaceTempView("avisos_total_imputada_t
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE gran_concepcion.02_plata.avisos_limpios AS
-# MAGIC SELECT * FROM avisos_total_imputada_tmp
+# MAGIC CREATE OR REPLACE TABLE gran_concepcion.02_plata.avisos_limpios
+# MAGIC PARTITIONED BY (fecha_publicacion_aprox)
+# MAGIC AS SELECT * FROM avisos_total_imputada_tmp
 
 # COMMAND ----------
 

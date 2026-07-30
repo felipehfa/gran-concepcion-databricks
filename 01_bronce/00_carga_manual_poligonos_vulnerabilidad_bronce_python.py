@@ -185,6 +185,10 @@ print(f"{len(registros_filtrados)} Unidades Vecinales encontradas en las 10 comu
 
 # MAGIC %md
 # MAGIC ### 5. Armar DataFrame y vista temporal
+# MAGIC Convierte la lista de dicts (una entrada por Unidad Vecinal, sección 4) a
+# MAGIC un DataFrame de pandas y de ahí a una vista temporal de Spark, para poder
+# MAGIC referenciarla desde el `%sql MERGE` de la sección 6. `df_poligonos.head()`
+# MAGIC es solo para inspección visual al correr el notebook a mano.
 
 # COMMAND ----------
 
@@ -212,15 +216,16 @@ df_poligonos.head()
 # MAGIC     destino.pob_rsh_uv = nuevo.pob_rsh_uv,
 # MAGIC     destino.p_urbano = nuevo.p_urbano,
 # MAGIC     destino.c_ig_com = nuevo.c_ig_com,
+# MAGIC     destino.hog_uv = nuevo.hog_uv,
 # MAGIC     destino.geometria_wkt = nuevo.geometria_wkt,
 # MAGIC     destino._sistema_origen = nuevo._sistema_origen,
 # MAGIC     destino._id_corrida = nuevo._id_corrida
 # MAGIC WHEN NOT MATCHED THEN INSERT (
-# MAGIC     uv_rsh, comuna, rank_nac, pob_rsh_uv, p_urbano, c_ig_com, geometria_wkt,
+# MAGIC     uv_rsh, comuna, rank_nac, pob_rsh_uv, p_urbano, c_ig_com, hog_uv, geometria_wkt,
 # MAGIC     _sistema_origen, _id_corrida
 # MAGIC ) VALUES (
 # MAGIC     nuevo.uv_rsh, nuevo.comuna, nuevo.rank_nac, nuevo.pob_rsh_uv,
-# MAGIC     nuevo.p_urbano, nuevo.c_ig_com, nuevo.geometria_wkt,
+# MAGIC     nuevo.p_urbano, nuevo.c_ig_com, nuevo.hog_uv, nuevo.geometria_wkt,
 # MAGIC     nuevo._sistema_origen, nuevo._id_corrida
 # MAGIC )
 

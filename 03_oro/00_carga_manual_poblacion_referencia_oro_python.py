@@ -24,14 +24,17 @@
 # MAGIC mismos archivos que ya usa el proyecto original en
 # MAGIC `investigacion/03_ingenieria_variables/save/`):
 # MAGIC - `datos_ingenieria_variables.csv`: el dataset histórico ya limpio e
-# MAGIC   imputado (sin latitud/longitud/comuna, esas se recuperan de la base
-# MAGIC   original).
+# MAGIC   imputado (sin latitud/longitud/comuna, esas se recuperan del Bronce
+# MAGIC   propio de Databricks — ver sección 3).
 # MAGIC - `niveles_barrio.json`: diccionario barrio → nivel de precio, ya
 # MAGIC   calculado, más el nivel por defecto para barrios no vistos.
 # MAGIC - `selected_features.csv`: la lista de las features que el modelo espera.
-# MAGIC - `avisos_gran_concepcion.db`: la base SQLite ORIGINAL de investigación,
-# MAGIC   de donde se recupera latitud/longitud/comuna por `id_aviso` (se abre en
-# MAGIC   modo solo lectura).
+# MAGIC
+# MAGIC Databricks es una réplica independiente del proyecto original (scraper
+# MAGIC propio, catálogo propio) — este notebook NO se conecta a la base de datos
+# MAGIC del proyecto original ni a Supabase. Por eso la cobertura de coordenadas
+# MAGIC queda limitada a los avisos históricos que el scraper propio de
+# MAGIC Databricks también llegó a capturar (ver sección 3).
 # MAGIC
 # MAGIC **Qué entrega:** cuatro tablas en `gran_concepcion.03_oro`:
 # MAGIC - `poblacion_referencia`: una fila por aviso histórico, con coordenadas.
@@ -45,11 +48,13 @@
 
 # MAGIC %md
 # MAGIC ### 0. Importar librerías
+# MAGIC `json` para leer `niveles_barrio.json`; `numpy`/`pandas` para el cálculo
+# MAGIC de `precio_m2`, el límite IQR y el armado de la población de referencia
+# MAGIC antes de convertirla a un DataFrame de Spark.
 
 # COMMAND ----------
 
 import json
-import sqlite3
 
 import numpy as np
 import pandas as pd
@@ -66,7 +71,6 @@ RUTA_REFERENCIA = "/Volumes/gran_concepcion/03_oro/referencia_modelo"
 RUTA_CSV_INGENIERIA_VARIABLES = f"{RUTA_REFERENCIA}/datos_ingenieria_variables.csv"
 RUTA_NIVELES_BARRIO_JSON = f"{RUTA_REFERENCIA}/niveles_barrio.json"
 RUTA_SELECTED_FEATURES_CSV = f"{RUTA_REFERENCIA}/selected_features.csv"
-RUTA_BD_ORIGINAL_SQLITE = f"{RUTA_REFERENCIA}/avisos_gran_concepcion.db"
 
 # Mismo multiplicador de IQR que usa el proyecto original para descartar
 # outliers de precio/m2 al buscar comparables de sector.
@@ -76,6 +80,9 @@ MULTIPLICADOR_IQR = 3
 
 # MAGIC %md
 # MAGIC ### 2. Crear el esquema y las tablas de referencia (si no existen)
+# MAGIC Las cinco tablas que este notebook puebla. Son de referencia estática
+# MAGIC (no incrementales, no particionadas — ver `.claude/rules/particionado-optimize.md`):
+# MAGIC cada corrida de este notebook las sobreescribe completas.
 
 # COMMAND ----------
 
@@ -138,31 +145,38 @@ print("Esquema y tablas de referencia verificados/creados.")
 # MAGIC %md
 # MAGIC ### 3. Leer el CSV histórico y recuperar comuna/latitud/longitud
 # MAGIC `datos_ingenieria_variables.csv` no trae coordenadas (se descartan en el
-# MAGIC pipeline de investigación tras usarlas para imputar), así que se
-# MAGIC recuperan con una consulta de solo lectura contra la base SQLite
-# MAGIC ORIGINAL, igual que hace `04_ingenieria_variables_produccion.py` en el
-# MAGIC proyecto original.
+# MAGIC pipeline de investigación tras usarlas para imputar). Se recuperan
+# MAGIC cruzando por `id_aviso` contra el Bronce PROPIO de Databricks
+# MAGIC (`01_bronce.avisos`/`avisos_detalle`) — nunca contra la base del proyecto
+# MAGIC original ni contra Supabase, para que Databricks siga siendo una réplica
+# MAGIC independiente con su propio scraper. Consecuencia esperada: solo se
+# MAGIC recupera coordenadas para los avisos históricos que el scraper propio de
+# MAGIC Databricks también llegó a capturar — no el 100% del dataset de
+# MAGIC entrenamiento del modelo. `latitud`/`longitud` viven como STRING en
+# MAGIC Bronce (ver `01_bronce/02_scraper_manual_detalle_bronce_python.ipynb`),
+# MAGIC de ahí el `TRY_CAST` a DOUBLE.
 
 # COMMAND ----------
 
 df_csv = pd.read_csv(RUTA_CSV_INGENIERIA_VARIABLES)
 
-con_original = sqlite3.connect(f"file:{RUTA_BD_ORIGINAL_SQLITE}?mode=ro", uri=True)
-coords_comuna = pd.read_sql_query("""
-    SELECT a.id_aviso, a.comuna, d.latitud, d.longitud
-    FROM avisos a
-    JOIN avisos_detalle d ON a.id_aviso = d.id_aviso
+coords_comuna = spark.sql("""
+    SELECT
+        a.id_aviso,
+        a.comuna,
+        TRY_CAST(d.latitud AS DOUBLE)  AS latitud,
+        TRY_CAST(d.longitud AS DOUBLE) AS longitud
+    FROM gran_concepcion.01_bronce.avisos a
+    JOIN gran_concepcion.01_bronce.avisos_detalle d ON a.id_aviso = d.id_aviso
     WHERE a.tipo_propiedad = 'departamento'
-""", con_original)
-con_original.close()
+""").toPandas()
 
 referencia = df_csv.merge(coords_comuna, on="id_aviso", how="inner")
-referencia["latitud"] = pd.to_numeric(referencia["latitud"], errors="coerce")
-referencia["longitud"] = pd.to_numeric(referencia["longitud"], errors="coerce")
 referencia = referencia.dropna(subset=["latitud", "longitud"]).reset_index(drop=True)
 
 print(f"Población de referencia: {len(referencia)} departamentos históricos con coordenadas "
-      f"(de {len(df_csv)} en el CSV original).")
+      f"(de {len(df_csv)} en el CSV de entrenamiento — cobertura limitada al subconjunto que "
+      f"el scraper propio de Databricks también capturó).")
 
 # COMMAND ----------
 
@@ -211,6 +225,13 @@ columnas_double = [
 
 for col in columnas_double:
     referencia[col] = referencia[col].astype("float64")
+
+# Mismo orden y nombres que el DDL de poblacion_referencia (sección 2), para
+# que spark.createDataFrame infiera un esquema que calce columna a columna.
+columnas_poblacion = [
+    "id_aviso", "comuna", "latitud", "longitud", "antiguedad_anos", "piso_unidad",
+    "precio_m2", "precio_m2_valido", "rank_nac", "pob_rsh_uv", "p_urbano", "c_ig_com", "hog_uv",
+]
 
 spark.createDataFrame(referencia[columnas_poblacion]).write.mode("overwrite").saveAsTable(
     "gran_concepcion.03_oro.poblacion_referencia"
@@ -285,6 +306,11 @@ df_niveles_barrio = pd.DataFrame([
     {"barrio": barrio, "nivel_barrio": int(nivel)}
     for barrio, nivel in niveles_barrio["mapa_barrio_a_nivel"].items()
 ])
+# int32 (no el "int"/int64 default de pandas) para calzar exacto con la
+# columna INT del DDL — con int64, spark.createDataFrame infiere BIGINT y
+# el saveAsTable(mode="overwrite") revienta con DELTA_FAILED_TO_MERGE_FIELDS
+# contra la tabla ya creada. Mismo fix que decil_precio en 10_prediccion_oro_python.py.
+df_niveles_barrio["nivel_barrio"] = df_niveles_barrio["nivel_barrio"].astype("int32")
 
 spark.createDataFrame(df_niveles_barrio).write.mode("overwrite").saveAsTable(
     "gran_concepcion.03_oro.niveles_barrio_referencia"
@@ -304,6 +330,10 @@ print(f"{df_niveles_barrio.shape[0]} barrios cargados. Nivel por defecto: {nivel
 
 # MAGIC %md
 # MAGIC ### 8. Cargar `selected_features.csv`
+# MAGIC La lista de las 29 features que el modelo espera, en el orden que
+# MAGIC `10_prediccion_oro_python.py` usa para armar la matriz de entrada
+# MAGIC (`pendientes_df.reindex(columns=features_modelo, ...)`) — se guarda tal
+# MAGIC cual, sin transformar.
 
 # COMMAND ----------
 
