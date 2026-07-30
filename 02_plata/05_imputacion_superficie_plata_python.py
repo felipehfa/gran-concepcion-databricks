@@ -40,6 +40,11 @@
 
 # COMMAND ----------
 
+# MAGIC %pip install --force-reinstall "numpy<2" "scipy<1.14" scikit-learn==1.9.0
+# MAGIC dbutils.library.restartPython()
+
+# COMMAND ----------
+
 from datetime import datetime
 
 import joblib

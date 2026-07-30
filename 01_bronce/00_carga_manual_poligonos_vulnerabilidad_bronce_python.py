@@ -49,6 +49,11 @@
 
 # COMMAND ----------
 
+# MAGIC %pip install pyshp==2.3.1 shapely==2.1.2
+# MAGIC %restart_python
+
+# COMMAND ----------
+
 import math
 import uuid
 

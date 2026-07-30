@@ -182,6 +182,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 13
 # MAGIC %sql
 # MAGIC CREATE OR REPLACE TEMP VIEW pendientes_normalizados AS
 # MAGIC SELECT
@@ -200,15 +201,15 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC     COALESCE(piscina, 0)                     AS piscina,
 # MAGIC     COALESCE(ascensor, 0)                    AS ascensor,
 # MAGIC     COALESCE(gastos_comunes, 0)              AS gastos_comunes,
-# MAGIC     COALESCE(cantidad_paraderos, 0)          AS cantidad_paraderos,
-# MAGIC     COALESCE(cantidad_jardines_infantiles, 0) AS cantidad_jardines_infantiles,
-# MAGIC     COALESCE(cantidad_colegios, 0)           AS cantidad_colegios,
-# MAGIC     COALESCE(cantidad_universidades, 0)      AS cantidad_universidades,
-# MAGIC     COALESCE(cantidad_plazas, 0)              AS cantidad_plazas,
-# MAGIC     COALESCE(cantidad_supermercados, 0)      AS cantidad_supermercados,
-# MAGIC     COALESCE(cantidad_farmacias, 0)          AS cantidad_farmacias,
-# MAGIC     COALESCE(cantidad_centros_comerciales, 0) AS cantidad_centros_comerciales,
-# MAGIC     COALESCE(cantidad_clinicas, 0)           AS cantidad_clinicas
+# MAGIC     COALESCE(CAST(cantidad_paraderos AS INT), 0)          AS cantidad_paraderos,
+# MAGIC     COALESCE(CAST(cantidad_jardines_infantiles AS INT), 0) AS cantidad_jardines_infantiles,
+# MAGIC     COALESCE(CAST(cantidad_colegios AS INT), 0)           AS cantidad_colegios,
+# MAGIC     COALESCE(CAST(cantidad_universidades AS INT), 0)      AS cantidad_universidades,
+# MAGIC     COALESCE(CAST(cantidad_plazas AS INT), 0)              AS cantidad_plazas,
+# MAGIC     COALESCE(CAST(cantidad_supermercados AS INT), 0)      AS cantidad_supermercados,
+# MAGIC     COALESCE(CAST(cantidad_farmacias AS INT), 0)          AS cantidad_farmacias,
+# MAGIC     COALESCE(CAST(cantidad_centros_comerciales AS INT), 0) AS cantidad_centros_comerciales,
+# MAGIC     COALESCE(CAST(cantidad_clinicas AS INT), 0)           AS cantidad_clinicas
 # MAGIC FROM pendientes_distancias
 
 # COMMAND ----------
@@ -268,12 +269,12 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC %sql
 # MAGIC CREATE OR REPLACE TEMP VIEW pendientes_vulnerabilidad AS
 # MAGIC SELECT
-# MAGIC     p.* EXCEPT (rank_nac, pob_rsh_uv, p_urbano, c_ig_com, hog_uv),
-# MAGIC     COALESCE(p.rank_nac, cs.media_rank_nac, e.media_rank_nac_global) AS rank_nac,
-# MAGIC     COALESCE(p.pob_rsh_uv, cs.media_pob_rsh_uv, e.media_pob_rsh_uv_global) AS pob_rsh_uv,
-# MAGIC     COALESCE(p.p_urbano, cs.media_p_urbano, e.media_p_urbano_global) AS p_urbano,
-# MAGIC     COALESCE(p.c_ig_com, cs.media_c_ig_com, e.media_c_ig_com_global) AS c_ig_com,
-# MAGIC     COALESCE(p.hog_uv, cs.media_hog_uv, e.media_hog_uv_global) AS hog_uv
+# MAGIC     p.*,
+# MAGIC     COALESCE(cs.media_rank_nac, e.media_rank_nac_global) AS rank_nac,
+# MAGIC     COALESCE(cs.media_pob_rsh_uv, e.media_pob_rsh_uv_global) AS pob_rsh_uv,
+# MAGIC     COALESCE(cs.media_p_urbano, e.media_p_urbano_global) AS p_urbano,
+# MAGIC     COALESCE(cs.media_c_ig_com, e.media_c_ig_com_global) AS c_ig_com,
+# MAGIC     COALESCE(cs.media_hog_uv, e.media_hog_uv_global) AS hog_uv
 # MAGIC FROM pendientes_nivel_barrio p
 # MAGIC LEFT JOIN gran_concepcion.03_oro.referencia_estadisticas_por_comuna cs ON p.comuna = cs.comuna
 # MAGIC CROSS JOIN referencia_escalares e
@@ -445,6 +446,14 @@ else:
     """)
 
 print(f"Procesadas {spark.table('pendientes_oro').count()} filas.")
+
+# COMMAND ----------
+
+print("=== pendientes_oro ===")
+spark.table("pendientes_oro").printSchema()
+
+print("=== tabla_oro ===")
+spark.table(tabla_oro).printSchema()
 
 # COMMAND ----------
 

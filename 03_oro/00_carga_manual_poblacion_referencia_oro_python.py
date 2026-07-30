@@ -204,10 +204,13 @@ print(f"Límite IQR de precio/m2: [{lim_inf_precio_m2:,.0f}, {lim_sup_precio_m2:
 
 # COMMAND ----------
 
-columnas_poblacion = [
-    "id_aviso", "comuna", "latitud", "longitud", "antiguedad_anos", "piso_unidad",
-    "precio_m2", "precio_m2_valido", "rank_nac", "pob_rsh_uv", "p_urbano", "c_ig_com", "hog_uv",
+columnas_double = [
+    "latitud", "longitud", "antiguedad_anos", "piso_unidad",
+    "precio_m2", "rank_nac", "pob_rsh_uv", "p_urbano", "c_ig_com", "hog_uv",
 ]
+
+for col in columnas_double:
+    referencia[col] = referencia[col].astype("float64")
 
 spark.createDataFrame(referencia[columnas_poblacion]).write.mode("overwrite").saveAsTable(
     "gran_concepcion.03_oro.poblacion_referencia"
