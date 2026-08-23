@@ -28,7 +28,7 @@ convención de nombres):
 | **Particionado por capa** (fecha de ingesta en Bronce, fecha de negocio en Silver/Gold) | `PARTITIONED BY` en las tablas que crecen con cada corrida (`avisos`, `avisos_detalle`, `avisos_limpios`, `avisos_features`, `predicciones`). Las tablas de referencia estática (polígonos, población de referencia) no se particionan — son chicas y se sobreescriben completas. |
 | **Compactación tras cada MERGE incremental** | Cada notebook automático termina con una celda `OPTIMIZE ... ZORDER BY (id_aviso)`. |
 | **Una sola capa Gold**, sin capas extra fuera del modelo de 3 | La predicción de precio vive dentro de `03_oro/` (no en un esquema `04_prediccion` aparte): Oro es el layer de negocio completo — features + predicción/etiqueta lista para consumo. |
-| **Convención de nombres** | `gran_concepcion.<capa>.<entidad>` (`01_bronce.avisos`, `02_plata.avisos_limpios`, `03_oro.avisos_features`, `03_oro.predicciones`); columnas de metadata siempre con prefijo `_`. |
+| **Convención de nombres** | `gran_concepcion.<capa>.<entidad>` (`01_bronce.avisos`, `02_plata.avisos_limpios`, `03_oro.stg_avisos_features`, `03_oro.fact_aviso`); columnas de metadata siempre con prefijo `_`. En Oro, `stg_*` = insumo interno de feature engineering, `dim_*`/`fact_*` = modelo dimensional para Power BI. |
 
 Ver `CLAUDE.md` para el detalle de cada patrón (con secciones de código
 citadas) y para los tradeoffs que se evaluaron antes de implementarlos.
@@ -65,6 +65,11 @@ citadas) y para los tradeoffs que se evaluaron antes de implementarlos.
 | 9 | `03_oro/07_vulnerabilidad_oro_python.py` | Python | Automático |
 | 10 | `03_oro/09_actualizacion_estado_avisos_oro_python.py` | Python | Automático |
 | 11 | `03_oro/10_prediccion_oro_python.py` | Python | Manual, una vez (o al reentrenar el modelo) |
+| 12 | `03_oro/11_modelo_dimensional_oro_sql.py` | SQL | Automático |
+
+El notebook 12 arma el modelo dimensional Kimball (`dim_*`/`fact_aviso`) que
+consume Power BI, a partir de las tablas de staging (`stg_*`) que dejan 06,
+07, 09 y 10 — no toca capas anteriores directo.
 
 Todos los notebooks son idempotentes: si se borran las tablas del catálogo
 y se vuelve a correr todo en este orden, las tablas se recrean y se

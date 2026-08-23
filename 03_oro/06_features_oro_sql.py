@@ -29,7 +29,7 @@
 # MAGIC `07_vulnerabilidad_oro_python` no los haya resuelto todavía).
 # MAGIC
 # MAGIC Procesa **solo** los avisos de Plata que todavía no existen en
-# MAGIC `gran_concepcion.03_oro.avisos_features`, y descarta (no incluye en Oro,
+# MAGIC `gran_concepcion.03_oro.stg_avisos_features`, y descarta (no incluye en Oro,
 # MAGIC se reintentan en la próxima corrida) los que no pasan el mismo filtro de
 # MAGIC sanidad que usa el proyecto original antes de calcular features: sin
 # MAGIC dormitorios o baños, o sin ningún dato de superficie. Cada fila insertada
@@ -63,12 +63,12 @@
 # MAGIC %md
 # MAGIC ### 2. Identificar avisos pendientes de procesar
 # MAGIC Avisos que ya están limpios en Plata, pero todavía no están en
-# MAGIC `avisos_features`. Si `avisos_features` no existe todavía (primera
+# MAGIC `stg_avisos_features`. Si `stg_avisos_features` no existe todavía (primera
 # MAGIC corrida), todos los avisos de Plata se consideran pendientes.
 
 # COMMAND ----------
 
-tabla_oro = "gran_concepcion.03_oro.avisos_features"
+tabla_oro = "gran_concepcion.03_oro.stg_avisos_features"
 
 if spark.catalog.tableExists(tabla_oro):
     condicion_pendientes = f"""
@@ -253,7 +253,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 
 # MAGIC %md
 # MAGIC ### 7. Estadísticas de respaldo, en columnas (una sola fila)
-# MAGIC Pivotea `referencia_estadisticas` (clave/valor) a columnas, para poder
+# MAGIC Pivotea `stg_referencia_estadisticas` (clave/valor) a columnas, para poder
 # MAGIC hacer `CROSS JOIN` contra ella en los pasos siguientes sin subconsultas
 # MAGIC repetidas.
 
@@ -271,14 +271,14 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC     MAX(CASE WHEN clave = 'media_hog_uv_global' THEN valor END) AS media_hog_uv_global,
 # MAGIC     MAX(CASE WHEN clave = 'mediana_precio_m2_fallback' THEN valor END) AS mediana_precio_m2_fallback,
 # MAGIC     MAX(CASE WHEN clave = 'nivel_barrio_default' THEN valor END) AS nivel_barrio_default
-# MAGIC FROM gran_concepcion.03_oro.referencia_estadisticas
+# MAGIC FROM gran_concepcion.03_oro.stg_referencia_estadisticas
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ### 8. `nivel_barrio`: lookup contra el diccionario congelado
 # MAGIC A diferencia del cálculo dinámico, acá se busca el nivel ya calculado al
-# MAGIC entrenar (`niveles_barrio_referencia`); un barrio no visto en ese momento
+# MAGIC entrenar (`dim_barrio`); un barrio no visto en ese momento
 # MAGIC cae al nivel por defecto.
 
 # COMMAND ----------
@@ -289,7 +289,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC     p.*,
 # MAGIC     COALESCE(nb.nivel_barrio, CAST(e.nivel_barrio_default AS INT)) AS nivel_barrio
 # MAGIC FROM pendientes_normalizados p
-# MAGIC LEFT JOIN gran_concepcion.03_oro.niveles_barrio_referencia nb ON p.barrio = nb.barrio
+# MAGIC LEFT JOIN gran_concepcion.03_oro.dim_barrio nb ON p.barrio = nb.barrio
 # MAGIC CROSS JOIN referencia_escalares e
 
 # COMMAND ----------
@@ -313,7 +313,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC     COALESCE(cs.media_c_ig_com, e.media_c_ig_com_global) AS c_ig_com,
 # MAGIC     COALESCE(cs.media_hog_uv, e.media_hog_uv_global) AS hog_uv
 # MAGIC FROM pendientes_nivel_barrio p
-# MAGIC LEFT JOIN gran_concepcion.03_oro.referencia_estadisticas_por_comuna cs ON p.comuna = cs.comuna
+# MAGIC LEFT JOIN gran_concepcion.03_oro.stg_referencia_estadisticas_por_comuna cs ON p.comuna = cs.comuna
 # MAGIC CROSS JOIN referencia_escalares e
 
 # COMMAND ----------
@@ -340,7 +340,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC %md
 # MAGIC ### 11. `antiguedad_anos`: cascada EN LA POBLACIÓN DE REFERENCIA
 # MAGIC Si el aviso ya trae antigüedad, se deja tal cual. Si no, cascada de
-# MAGIC fallbacks contra `poblacion_referencia` (no contra Plata), igual orden que
+# MAGIC fallbacks contra `stg_poblacion_referencia` (no contra Plata), igual orden que
 # MAGIC el original: 1) coordenada EXACTA (mismo edificio/condominio — ahí el
 # MAGIC original usa moda en vez de mediana, pero como en la práctica todos los
 # MAGIC avisos de un mismo edificio comparten la misma antigüedad, la mediana da
@@ -357,7 +357,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC     p.id_aviso,
 # MAGIC     r.antiguedad_anos AS antiguedad_vecino
 # MAGIC FROM pendientes_piso p
-# MAGIC INNER JOIN gran_concepcion.03_oro.poblacion_referencia r
+# MAGIC INNER JOIN gran_concepcion.03_oro.stg_poblacion_referencia r
 # MAGIC     ON p.latitud IS NOT NULL AND p.longitud IS NOT NULL
 # MAGIC     AND r.latitud = p.latitud AND r.longitud = p.longitud
 # MAGIC WHERE p.antiguedad_anos IS NULL
@@ -378,7 +378,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC     p.id_aviso,
 # MAGIC     r.antiguedad_anos AS antiguedad_vecino
 # MAGIC FROM pendientes_piso p
-# MAGIC INNER JOIN gran_concepcion.03_oro.poblacion_referencia r
+# MAGIC INNER JOIN gran_concepcion.03_oro.stg_poblacion_referencia r
 # MAGIC     ON p.latitud IS NOT NULL AND p.longitud IS NOT NULL
 # MAGIC     AND (
 # MAGIC         2 * 6371000 * ASIN(SQRT(
@@ -413,7 +413,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC FROM pendientes_piso p
 # MAGIC LEFT JOIN antiguedad_exacta ae ON p.id_aviso = ae.id_aviso
 # MAGIC LEFT JOIN antiguedad_vecinos av ON p.id_aviso = av.id_aviso
-# MAGIC LEFT JOIN gran_concepcion.03_oro.referencia_estadisticas_por_comuna cs ON p.comuna = cs.comuna
+# MAGIC LEFT JOIN gran_concepcion.03_oro.stg_referencia_estadisticas_por_comuna cs ON p.comuna = cs.comuna
 # MAGIC CROSS JOIN referencia_escalares e
 
 # COMMAND ----------
@@ -434,7 +434,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC     p.id_aviso,
 # MAGIC     r.precio_m2 AS precio_m2_vecino
 # MAGIC FROM pendientes_antiguedad p
-# MAGIC INNER JOIN gran_concepcion.03_oro.poblacion_referencia r
+# MAGIC INNER JOIN gran_concepcion.03_oro.stg_poblacion_referencia r
 # MAGIC     ON r.precio_m2_valido = true
 # MAGIC     AND p.latitud IS NOT NULL AND p.longitud IS NOT NULL
 # MAGIC     AND (
@@ -492,7 +492,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC ### 14. Crear la tabla de Oro (si no existe) e insertar los avisos nuevos
 # MAGIC Mismo patrón incremental que el resto del pipeline (ver
 # MAGIC `.claude/rules/patron-incremental.md`): `CREATE TABLE ... AS SELECT` si
-# MAGIC `avisos_features` no existe todavía (primera corrida), `INSERT INTO` con
+# MAGIC `stg_avisos_features` no existe todavía (primera corrida), `INSERT INTO` con
 # MAGIC columnas explícitas si ya existe.
 
 # COMMAND ----------
@@ -541,7 +541,7 @@ spark.table(tabla_oro).printSchema()
 
 # COMMAND ----------
 
-columnas_actuales = spark.table("gran_concepcion.03_oro.avisos_features").columns
+columnas_actuales = spark.table("gran_concepcion.03_oro.stg_avisos_features").columns
 
 if "rn" in columnas_actuales:
     seleccion_base = "* EXCEPT (rn)"
@@ -549,12 +549,12 @@ else:
     seleccion_base = "*"
 
 spark.sql(f"""
-    CREATE OR REPLACE TABLE gran_concepcion.03_oro.avisos_features
+    CREATE OR REPLACE TABLE gran_concepcion.03_oro.stg_avisos_features
     PARTITIONED BY (fecha_publicacion_aprox)
     AS SELECT * FROM (
         SELECT {seleccion_base},
             ROW_NUMBER() OVER (PARTITION BY id_aviso ORDER BY fecha_creacion_oro DESC) AS rn
-        FROM gran_concepcion.03_oro.avisos_features
+        FROM gran_concepcion.03_oro.stg_avisos_features
     )
     WHERE rn = 1
 """)
@@ -570,7 +570,7 @@ print("Duplicados eliminados. Columna 'rn' ya no debería persistir en la tabla.
 
 # COMMAND ----------
 
-spark.sql("OPTIMIZE gran_concepcion.03_oro.avisos_features ZORDER BY (id_aviso)")
+spark.sql("OPTIMIZE gran_concepcion.03_oro.stg_avisos_features ZORDER BY (id_aviso)")
 
 # COMMAND ----------
 
@@ -580,7 +580,7 @@ spark.sql("OPTIMIZE gran_concepcion.03_oro.avisos_features ZORDER BY (id_aviso)"
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT COUNT(*) AS total_filas FROM gran_concepcion.03_oro.avisos_features
+# MAGIC SELECT COUNT(*) AS total_filas FROM gran_concepcion.03_oro.stg_avisos_features
 
 # COMMAND ----------
 
@@ -592,6 +592,6 @@ spark.sql("OPTIMIZE gran_concepcion.03_oro.avisos_features ZORDER BY (id_aviso)"
 # MAGIC     precio_m2_sector_departamento, tiene_comparables_cercanos,
 # MAGIC     rank_nac, pob_rsh_uv, p_urbano, c_ig_com, hog_uv,
 # MAGIC     fecha_creacion_oro
-# MAGIC FROM gran_concepcion.03_oro.avisos_features
+# MAGIC FROM gran_concepcion.03_oro.stg_avisos_features
 # MAGIC ORDER BY fecha_creacion_oro DESC
 # MAGIC LIMIT 10

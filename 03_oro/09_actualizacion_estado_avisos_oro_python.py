@@ -11,7 +11,7 @@
 # MAGIC # 09 — Actualización de estado de avisos (Oro)
 # MAGIC
 # MAGIC Re-visita periódicamente los avisos que están `activo` en
-# MAGIC `gran_concepcion.03_oro.avisos_features` para detectar si pasaron a
+# MAGIC `gran_concepcion.03_oro.stg_avisos_features` para detectar si pasaron a
 # MAGIC pausado, finalizado, o si dejaron de existir, y mantiene esa columna al
 # MAGIC día en Oro.
 # MAGIC
@@ -20,7 +20,7 @@
 # MAGIC scrapeó el detalle de un aviso — un dato crudo más, igual que
 # MAGIC `descripcion` o `superficie_util_m2`. Como Plata y Oro son incrementales
 # MAGIC (solo procesan avisos que todavía no existen aguas abajo), ese valor
-# MAGIC crudo queda congelado en `avisos_limpios`/`avisos_features` desde el
+# MAGIC crudo queda congelado en `avisos_limpios`/`stg_avisos_features` desde el
 # MAGIC momento en que el aviso entró a cada capa, y nunca se refresca. Este
 # MAGIC notebook resuelve ese problema con el mismo patrón que ya usa
 # MAGIC `07_vulnerabilidad_oro_python.py` (que también re-consulta una fuente
@@ -33,7 +33,7 @@
 # MAGIC de `02_scraper_manual_detalle_bronce_python.ipynb` (que ahora solo se
 # MAGIC ocupa de la primera visita a cada aviso nuevo).
 # MAGIC
-# MAGIC **Qué recibe:** `gran_concepcion.03_oro.avisos_features` ya generada
+# MAGIC **Qué recibe:** `gran_concepcion.03_oro.stg_avisos_features` ya generada
 # MAGIC (notebooks 06 y 07 ya corridos), con `estado_publicacion` y `url`
 # MAGIC heredados de Plata (`url` viaja Bronce→Plata→Oro desde
 # MAGIC `04_limpieza_plata_sql.py`) — este notebook no necesita leer nada de
@@ -41,7 +41,7 @@
 # MAGIC
 # MAGIC **Qué entrega:** `estado_publicacion`, `fecha_chequeo_estado_oro` e
 # MAGIC `intentos_fallidos_chequeo_estado_oro` actualizados en
-# MAGIC `avisos_features`, fila por fila, a medida que se re-chequea cada aviso
+# MAGIC `stg_avisos_features`, fila por fila, a medida que se re-chequea cada aviso
 # MAGIC (no en un solo `MERGE` al final): así un aviso ya re-chequeado en esta
 # MAGIC corrida queda guardado aunque la corrida se corte después por un
 # MAGIC CAPTCHA — mismo criterio de robustez que ya usa
@@ -148,7 +148,7 @@ CLAVES_ESTADO_PUBLICACION = ("item_status_message", "item_status_short_descripti
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 2. Asegurar que existan las columnas de re-chequeo en `avisos_features`
+# MAGIC ### 2. Asegurar que existan las columnas de re-chequeo en `stg_avisos_features`
 # MAGIC Si ya existen (de una corrida anterior), el `ALTER TABLE` falla
 # MAGIC silenciosamente (se captura la excepción) — mismo patrón que usan
 # MAGIC `05_imputacion_superficie_plata_python.py` y
@@ -166,7 +166,7 @@ columnas_a_asegurar = {
 for columna, tipo in columnas_a_asegurar.items():
     try:
         spark.sql(f"""
-            ALTER TABLE gran_concepcion.03_oro.avisos_features
+            ALTER TABLE gran_concepcion.03_oro.stg_avisos_features
             ADD COLUMNS ({columna} {tipo})
         """)
         print(f"Columna '{columna}' agregada.")
@@ -442,7 +442,7 @@ def obtener_estado_aviso(url, id_aviso, comuna, tipo_propiedad):
 
 def actualizar_estado_publicacion_oro(id_aviso, estado_publicacion):
     spark.sql(f"""
-        UPDATE gran_concepcion.03_oro.avisos_features
+        UPDATE gran_concepcion.03_oro.stg_avisos_features
         SET estado_publicacion = '{_sql_str(estado_publicacion)}',
             fecha_chequeo_estado_oro = current_timestamp(),
             intentos_fallidos_chequeo_estado_oro = 0
@@ -452,13 +452,13 @@ def actualizar_estado_publicacion_oro(id_aviso, estado_publicacion):
 
 def incrementar_intentos_fallidos_chequeo_estado_oro(id_aviso):
     spark.sql(f"""
-        UPDATE gran_concepcion.03_oro.avisos_features
+        UPDATE gran_concepcion.03_oro.stg_avisos_features
         SET intentos_fallidos_chequeo_estado_oro = COALESCE(intentos_fallidos_chequeo_estado_oro, 0) + 1,
             fecha_chequeo_estado_oro = current_timestamp()
         WHERE id_aviso = '{_sql_str(id_aviso)}'
     """)
     fila = spark.sql(f"""
-        SELECT intentos_fallidos_chequeo_estado_oro FROM gran_concepcion.03_oro.avisos_features
+        SELECT intentos_fallidos_chequeo_estado_oro FROM gran_concepcion.03_oro.stg_avisos_features
         WHERE id_aviso = '{_sql_str(id_aviso)}'
     """).collect()
     return fila[0]["intentos_fallidos_chequeo_estado_oro"] if fila else 0
@@ -549,14 +549,14 @@ else:
 # MAGIC ### 9. Identificar avisos pendientes de re-chequeo
 # MAGIC Avisos `activo` en Oro cuyo `fecha_chequeo_estado_oro` es NULL (nunca
 # MAGIC re-chequeados desde acá) o superó `DIAS_MIN_ENTRE_RECHEQUEOS` días.
-# MAGIC `url` ya viene heredada de Plata en `avisos_features`, sin necesidad de
+# MAGIC `url` ya viene heredada de Plata en `stg_avisos_features`, sin necesidad de
 # MAGIC leer Bronce. Los NULL quedan primero (son los más urgentes).
 
 # COMMAND ----------
 
 pendientes_rows = spark.sql(f"""
     SELECT id_aviso, url, comuna, tipo_propiedad
-    FROM gran_concepcion.03_oro.avisos_features
+    FROM gran_concepcion.03_oro.stg_avisos_features
     WHERE estado_publicacion = 'activo'
       AND url IS NOT NULL
       AND (
@@ -613,7 +613,7 @@ log.info(f"Re-chequeo: procesados {rechequeos_procesados} de {len(pendientes)}. 
 
 # MAGIC %sql
 # MAGIC SELECT estado_publicacion, COUNT(*) AS avisos
-# MAGIC FROM gran_concepcion.03_oro.avisos_features
+# MAGIC FROM gran_concepcion.03_oro.stg_avisos_features
 # MAGIC GROUP BY estado_publicacion
 # MAGIC ORDER BY avisos DESC
 
@@ -621,7 +621,7 @@ log.info(f"Re-chequeo: procesados {rechequeos_procesados} de {len(pendientes)}. 
 
 # MAGIC %sql
 # MAGIC SELECT id_aviso, estado_publicacion, fecha_chequeo_estado_oro, intentos_fallidos_chequeo_estado_oro
-# MAGIC FROM gran_concepcion.03_oro.avisos_features
+# MAGIC FROM gran_concepcion.03_oro.stg_avisos_features
 # MAGIC WHERE fecha_chequeo_estado_oro IS NOT NULL
 # MAGIC ORDER BY fecha_chequeo_estado_oro DESC
 # MAGIC LIMIT 10
@@ -636,4 +636,4 @@ log.info(f"Re-chequeo: procesados {rechequeos_procesados} de {len(pendientes)}. 
 
 # COMMAND ----------
 
-spark.sql("OPTIMIZE gran_concepcion.03_oro.avisos_features ZORDER BY (id_aviso)")
+spark.sql("OPTIMIZE gran_concepcion.03_oro.stg_avisos_features ZORDER BY (id_aviso)")

@@ -36,13 +36,15 @@
 # MAGIC queda limitada a los avisos históricos que el scraper propio de
 # MAGIC Databricks también llegó a capturar (ver sección 3).
 # MAGIC
-# MAGIC **Qué entrega:** cuatro tablas en `gran_concepcion.03_oro`:
-# MAGIC - `poblacion_referencia`: una fila por aviso histórico, con coordenadas.
-# MAGIC - `niveles_barrio_referencia`: mapa barrio → nivel.
-# MAGIC - `referencia_estadisticas`: valores de respaldo (clave/valor) usados
+# MAGIC **Qué entrega:** cinco tablas en `gran_concepcion.03_oro`:
+# MAGIC - `stg_poblacion_referencia`: una fila por aviso histórico, con coordenadas.
+# MAGIC - `dim_barrio`: mapa barrio → nivel, con surrogate key (`barrio_id`) para
+# MAGIC   el modelo dimensional — la única tabla de esta lista que no lleva
+# MAGIC   prefijo `stg_`, porque se consume directo desde Power BI.
+# MAGIC - `stg_referencia_estadisticas`: valores de respaldo (clave/valor) usados
 # MAGIC   cuando un aviso nuevo no tiene vecinos válidos.
-# MAGIC - `referencia_estadisticas_por_comuna`: los mismos respaldos, por comuna.
-# MAGIC - `features_seleccionadas`: la lista de features que espera el modelo.
+# MAGIC - `stg_referencia_estadisticas_por_comuna`: los mismos respaldos, por comuna.
+# MAGIC - `stg_features_seleccionadas`: la lista de features que espera el modelo.
 
 # COMMAND ----------
 
@@ -89,7 +91,7 @@ MULTIPLICADOR_IQR = 3
 spark.sql("CREATE SCHEMA IF NOT EXISTS gran_concepcion.03_oro")
 
 spark.sql("""
-    CREATE TABLE IF NOT EXISTS gran_concepcion.03_oro.poblacion_referencia (
+    CREATE TABLE IF NOT EXISTS gran_concepcion.03_oro.stg_poblacion_referencia (
         id_aviso          STRING NOT NULL,
         comuna            STRING,
         latitud           DOUBLE,
@@ -106,22 +108,27 @@ spark.sql("""
     )
 """)
 
+# dim_barrio (no stg_: se consume directo desde Power BI) lleva surrogate key
+# — GENERATED ALWAYS AS IDENTITY no admite CTAS con esquema explícito, así
+# que si la tabla no existe se crea vacía acá y la sección 7 la puebla con
+# INSERT (nunca con overwrite de DataFrame, que no sabe generar la identity).
 spark.sql("""
-    CREATE TABLE IF NOT EXISTS gran_concepcion.03_oro.niveles_barrio_referencia (
+    CREATE TABLE IF NOT EXISTS gran_concepcion.03_oro.dim_barrio (
+        barrio_id    BIGINT GENERATED ALWAYS AS IDENTITY,
         barrio       STRING NOT NULL,
         nivel_barrio INT NOT NULL
     )
 """)
 
 spark.sql("""
-    CREATE TABLE IF NOT EXISTS gran_concepcion.03_oro.referencia_estadisticas (
+    CREATE TABLE IF NOT EXISTS gran_concepcion.03_oro.stg_referencia_estadisticas (
         clave STRING NOT NULL,
         valor DOUBLE
     )
 """)
 
 spark.sql("""
-    CREATE TABLE IF NOT EXISTS gran_concepcion.03_oro.referencia_estadisticas_por_comuna (
+    CREATE TABLE IF NOT EXISTS gran_concepcion.03_oro.stg_referencia_estadisticas_por_comuna (
         comuna            STRING NOT NULL,
         mediana_antiguedad DOUBLE,
         media_rank_nac    DOUBLE,
@@ -133,7 +140,7 @@ spark.sql("""
 """)
 
 spark.sql("""
-    CREATE TABLE IF NOT EXISTS gran_concepcion.03_oro.features_seleccionadas (
+    CREATE TABLE IF NOT EXISTS gran_concepcion.03_oro.stg_features_seleccionadas (
         feature STRING NOT NULL
     )
 """)
@@ -234,7 +241,7 @@ columnas_poblacion = [
 ]
 
 spark.createDataFrame(referencia[columnas_poblacion]).write.mode("overwrite").saveAsTable(
-    "gran_concepcion.03_oro.poblacion_referencia"
+    "gran_concepcion.03_oro.stg_poblacion_referencia"
 )
 
 print(f"{referencia.shape[0]} filas guardadas en poblacion_referencia.")
@@ -250,7 +257,7 @@ print(f"{referencia.shape[0]} filas guardadas en poblacion_referencia.")
 # COMMAND ----------
 
 spark.sql("""
-    INSERT OVERWRITE TABLE gran_concepcion.03_oro.referencia_estadisticas_por_comuna
+    INSERT OVERWRITE TABLE gran_concepcion.03_oro.stg_referencia_estadisticas_por_comuna
     SELECT
         comuna,
         PERCENTILE_APPROX(antiguedad_anos, 0.5) AS mediana_antiguedad,
@@ -259,26 +266,26 @@ spark.sql("""
         AVG(p_urbano)     AS media_p_urbano,
         AVG(c_ig_com)     AS media_c_ig_com,
         AVG(hog_uv)       AS media_hog_uv
-    FROM gran_concepcion.03_oro.poblacion_referencia
+    FROM gran_concepcion.03_oro.stg_poblacion_referencia
     GROUP BY comuna
 """)
 
 spark.sql(f"""
-    INSERT OVERWRITE TABLE gran_concepcion.03_oro.referencia_estadisticas
+    INSERT OVERWRITE TABLE gran_concepcion.03_oro.stg_referencia_estadisticas
     SELECT 'mediana_antiguedad_global' AS clave, PERCENTILE_APPROX(antiguedad_anos, 0.5) AS valor
-    FROM gran_concepcion.03_oro.poblacion_referencia
+    FROM gran_concepcion.03_oro.stg_poblacion_referencia
     UNION ALL
-    SELECT 'piso_promedio', AVG(piso_unidad) FROM gran_concepcion.03_oro.poblacion_referencia
+    SELECT 'piso_promedio', AVG(piso_unidad) FROM gran_concepcion.03_oro.stg_poblacion_referencia
     UNION ALL
-    SELECT 'media_rank_nac_global', AVG(rank_nac) FROM gran_concepcion.03_oro.poblacion_referencia
+    SELECT 'media_rank_nac_global', AVG(rank_nac) FROM gran_concepcion.03_oro.stg_poblacion_referencia
     UNION ALL
-    SELECT 'media_pob_rsh_uv_global', AVG(pob_rsh_uv) FROM gran_concepcion.03_oro.poblacion_referencia
+    SELECT 'media_pob_rsh_uv_global', AVG(pob_rsh_uv) FROM gran_concepcion.03_oro.stg_poblacion_referencia
     UNION ALL
-    SELECT 'media_p_urbano_global', AVG(p_urbano) FROM gran_concepcion.03_oro.poblacion_referencia
+    SELECT 'media_p_urbano_global', AVG(p_urbano) FROM gran_concepcion.03_oro.stg_poblacion_referencia
     UNION ALL
-    SELECT 'media_c_ig_com_global', AVG(c_ig_com) FROM gran_concepcion.03_oro.poblacion_referencia
+    SELECT 'media_c_ig_com_global', AVG(c_ig_com) FROM gran_concepcion.03_oro.stg_poblacion_referencia
     UNION ALL
-    SELECT 'media_hog_uv_global', AVG(hog_uv) FROM gran_concepcion.03_oro.poblacion_referencia
+    SELECT 'media_hog_uv_global', AVG(hog_uv) FROM gran_concepcion.03_oro.stg_poblacion_referencia
     UNION ALL
     SELECT 'lim_inf_precio_m2', {lim_inf_precio_m2}
     UNION ALL
@@ -295,7 +302,13 @@ print("Estadísticas de respaldo (global y por comuna) calculadas y guardadas.")
 # MAGIC ### 7. Cargar `niveles_barrio.json`
 # MAGIC El nivel por defecto (para barrios que no estaban en el diccionario al
 # MAGIC momento de entrenar) se guarda como una fila más en
-# MAGIC `referencia_estadisticas`, con clave `nivel_barrio_default`.
+# MAGIC `stg_referencia_estadisticas`, con clave `nivel_barrio_default`.
+# MAGIC
+# MAGIC `dim_barrio` no se sobreescribe con `.write.mode("overwrite")`: al tener
+# MAGIC `barrio_id GENERATED ALWAYS AS IDENTITY`, un overwrite de DataFrame (que
+# MAGIC no trae esa columna) rompería el esquema. Se vacía con `DELETE` y se
+# MAGIC repuebla con `INSERT INTO (barrio, nivel_barrio)` para que la identity se
+# MAGIC siga generando sola.
 
 # COMMAND ----------
 
@@ -307,20 +320,23 @@ df_niveles_barrio = pd.DataFrame([
     for barrio, nivel in niveles_barrio["mapa_barrio_a_nivel"].items()
 ])
 # int32 (no el "int"/int64 default de pandas) para calzar exacto con la
-# columna INT del DDL — con int64, spark.createDataFrame infiere BIGINT y
-# el saveAsTable(mode="overwrite") revienta con DELTA_FAILED_TO_MERGE_FIELDS
-# contra la tabla ya creada. Mismo fix que decil_precio en 10_prediccion_oro_python.py.
+# columna INT del DDL — con int64, spark.createDataFrame infiere BIGINT.
+# Mismo fix que decil_precio en 10_prediccion_oro_python.py.
 df_niveles_barrio["nivel_barrio"] = df_niveles_barrio["nivel_barrio"].astype("int32")
 
-spark.createDataFrame(df_niveles_barrio).write.mode("overwrite").saveAsTable(
-    "gran_concepcion.03_oro.niveles_barrio_referencia"
-)
+spark.createDataFrame(df_niveles_barrio).createOrReplaceTempView("niveles_barrio_tmp")
+
+spark.sql("DELETE FROM gran_concepcion.03_oro.dim_barrio")
+spark.sql("""
+    INSERT INTO gran_concepcion.03_oro.dim_barrio (barrio, nivel_barrio)
+    SELECT barrio, nivel_barrio FROM niveles_barrio_tmp
+""")
 
 spark.sql(f"""
-    DELETE FROM gran_concepcion.03_oro.referencia_estadisticas WHERE clave = 'nivel_barrio_default'
+    DELETE FROM gran_concepcion.03_oro.stg_referencia_estadisticas WHERE clave = 'nivel_barrio_default'
 """)
 spark.sql(f"""
-    INSERT INTO gran_concepcion.03_oro.referencia_estadisticas
+    INSERT INTO gran_concepcion.03_oro.stg_referencia_estadisticas
     VALUES ('nivel_barrio_default', {float(niveles_barrio["nivel_default"])})
 """)
 
@@ -340,7 +356,7 @@ print(f"{df_niveles_barrio.shape[0]} barrios cargados. Nivel por defecto: {nivel
 df_features = pd.read_csv(RUTA_SELECTED_FEATURES_CSV)
 
 spark.createDataFrame(df_features[["feature"]]).write.mode("overwrite").saveAsTable(
-    "gran_concepcion.03_oro.features_seleccionadas"
+    "gran_concepcion.03_oro.stg_features_seleccionadas"
 )
 
 print(f"{df_features.shape[0]} features seleccionadas cargadas: {df_features['feature'].tolist()}")
@@ -354,8 +370,8 @@ print(f"{df_features.shape[0]} features seleccionadas cargadas: {df_features['fe
 
 # MAGIC %sql
 # MAGIC SELECT
-# MAGIC     (SELECT COUNT(*) FROM gran_concepcion.03_oro.poblacion_referencia) AS avisos_referencia,
-# MAGIC     (SELECT COUNT(*) FROM gran_concepcion.03_oro.niveles_barrio_referencia) AS barrios,
-# MAGIC     (SELECT COUNT(*) FROM gran_concepcion.03_oro.referencia_estadisticas) AS estadisticas_globales,
-# MAGIC     (SELECT COUNT(*) FROM gran_concepcion.03_oro.referencia_estadisticas_por_comuna) AS comunas,
-# MAGIC     (SELECT COUNT(*) FROM gran_concepcion.03_oro.features_seleccionadas) AS features
+# MAGIC     (SELECT COUNT(*) FROM gran_concepcion.03_oro.stg_poblacion_referencia) AS avisos_referencia,
+# MAGIC     (SELECT COUNT(*) FROM gran_concepcion.03_oro.dim_barrio) AS barrios,
+# MAGIC     (SELECT COUNT(*) FROM gran_concepcion.03_oro.stg_referencia_estadisticas) AS estadisticas_globales,
+# MAGIC     (SELECT COUNT(*) FROM gran_concepcion.03_oro.stg_referencia_estadisticas_por_comuna) AS comunas,
+# MAGIC     (SELECT COUNT(*) FROM gran_concepcion.03_oro.stg_features_seleccionadas) AS features

@@ -1,0 +1,145 @@
+-- Tabla: gran_concepcion.02_plata.avisos_limpios
+-- Creada por: 02_plata/04_limpieza_plata_sql.py (sección 7, `CREATE TABLE ...
+-- AS SELECT` a partir de `pendientes_precio_clp`) — NO tiene un DDL explícito
+-- en el notebook, el esquema lo infiere Spark de la cadena de vistas
+-- temporales. Columnas agregadas después vía `ALTER TABLE ADD COLUMNS`:
+-- `url`/`_sistema_origen`/`_id_corrida` (04_limpieza_plata_sql.py, sección
+-- 1.5) y `superficie_util_imputada`/`superficie_total_imputada`/
+-- `fecha_imputacion_util`/`fecha_imputacion_total` (05_imputacion_superficie_plata_python.py).
+--
+-- Este archivo se generó leyendo el esquema real de la tabla en el catálogo
+-- (`DESCRIBE TABLE`), no transcribiendo el SELECT a mano — es la única forma
+-- confiable de tener el DDL exacto de una tabla creada por CTAS. Es
+-- referencia de solo lectura: correrlo no reemplaza el `CREATE TABLE ... AS
+-- SELECT` real del notebook.
+--
+-- Nota: `amoblado`/`admite_mascotas` quedaron tipadas INT mientras que el
+-- resto de los booleanos derivados del mismo patrón CASE WHEN
+-- (`condominio_cerrado`, `estacionamiento_visitas`, `solo_familias`,
+-- `piscina`, `quincho`, `conserjeria`, `ascensor`) quedaron DOUBLE —
+-- inconsistencia de inferencia de tipo entre corridas incrementales, no
+-- corregida acá para que este archivo siga reflejando el catálogo real.
+-- `solo_familias_texto` está 100% NULL en los datos actuales (Spark lo
+-- reporta como `void`); se declara STRING abajo, el tipo que le
+-- correspondería si tuviera datos.
+
+CREATE TABLE gran_concepcion.02_plata.avisos_limpios (
+    id_aviso                                    STRING,
+    comuna                                       STRING,
+    tipo_propiedad                               STRING,
+    operacion                                    STRING,
+    titulo                                       STRING,
+    precio_texto                                 STRING,
+    moneda                                       STRING,
+    ubicacion                                    STRING,
+    first_seen                                   STRING,
+    url                                          STRING,
+    superficie_m2_texto                          STRING,
+    descripcion                                  STRING,
+    fecha_publicacion_texto                      STRING,
+    fecha_publicacion_aprox                      STRING,
+    fecha_publicacion_precision                  STRING,
+    superficie_total_m2_texto                    STRING,
+    superficie_util_m2_texto                     STRING,
+    dormitorios_texto                            STRING,
+    banos_texto                                  STRING,
+    estacionamientos_texto                       STRING,
+    antiguedad_anos_texto                        STRING,
+    amoblado_texto                               STRING,
+    admite_mascotas_texto                        STRING,
+    condominio_cerrado_texto                     STRING,
+    bodegas_texto                                STRING,
+    gastos_comunes_texto                         STRING,
+    estacionamiento_visitas_texto                STRING,
+    solo_familias_texto                          STRING,
+    max_habitantes_texto                         STRING,
+    piscina_texto                                STRING,
+    quincho_texto                                STRING,
+    conserjeria_texto                            STRING,
+    ascensor_texto                               STRING,
+    piso_unidad_texto                            STRING,
+    deptos_por_piso_texto                        STRING,
+    barrio                                       STRING,
+    latitud_texto                                STRING,
+    longitud_texto                               STRING,
+    estado_publicacion                           STRING,
+    _sistema_origen                              STRING,
+    _id_corrida                                  STRING,
+    cantidad_paraderos_texto                     STRING,
+    distancia_min_m_paraderos_texto              STRING,
+    cantidad_estaciones_metro_texto              STRING,
+    distancia_min_m_estaciones_metro_texto       STRING,
+    cantidad_jardines_infantiles_texto           STRING,
+    distancia_min_m_jardines_infantiles_texto    STRING,
+    cantidad_colegios_texto                      STRING,
+    distancia_min_m_colegios_texto               STRING,
+    cantidad_universidades_texto                 STRING,
+    distancia_min_m_universidades_texto          STRING,
+    cantidad_plazas_texto                        STRING,
+    distancia_min_m_plazas_texto                 STRING,
+    cantidad_supermercados_texto                 STRING,
+    distancia_min_m_supermercados_texto          STRING,
+    cantidad_farmacias_texto                     STRING,
+    distancia_min_m_farmacias_texto              STRING,
+    cantidad_centros_comerciales_texto           STRING,
+    distancia_min_m_centros_comerciales_texto    STRING,
+    cantidad_hospitales_texto                    STRING,
+    distancia_min_m_hospitales_texto             STRING,
+    cantidad_clinicas_texto                      STRING,
+    distancia_min_m_clinicas_texto               STRING,
+    precio                                       DOUBLE,
+    superficie_total_m2                          DOUBLE,
+    superficie_util_m2                           DOUBLE,
+    superficie_m2                                DOUBLE,
+    antiguedad_anos                              DOUBLE,
+    bodegas                                      DOUBLE,
+    max_habitantes                               DOUBLE,
+    piso_unidad                                  DOUBLE,
+    deptos_por_piso                              DOUBLE,
+    latitud                                      DOUBLE,
+    longitud                                     DOUBLE,
+    cantidad_paraderos                           DOUBLE,
+    distancia_min_m_paraderos                    DOUBLE,
+    cantidad_estaciones_metro                    DOUBLE,
+    distancia_min_m_estaciones_metro             DOUBLE,
+    cantidad_jardines_infantiles                 DOUBLE,
+    distancia_min_m_jardines_infantiles          DOUBLE,
+    cantidad_colegios                            DOUBLE,
+    distancia_min_m_colegios                     DOUBLE,
+    cantidad_universidades                       DOUBLE,
+    distancia_min_m_universidades                DOUBLE,
+    cantidad_plazas                              DOUBLE,
+    distancia_min_m_plazas                       DOUBLE,
+    cantidad_supermercados                       DOUBLE,
+    distancia_min_m_supermercados                DOUBLE,
+    cantidad_farmacias                           DOUBLE,
+    distancia_min_m_farmacias                    DOUBLE,
+    cantidad_centros_comerciales                 DOUBLE,
+    distancia_min_m_centros_comerciales          DOUBLE,
+    cantidad_hospitales                          DOUBLE,
+    distancia_min_m_hospitales                   DOUBLE,
+    cantidad_clinicas                            DOUBLE,
+    distancia_min_m_clinicas                     DOUBLE,
+    amoblado                                     INT,
+    admite_mascotas                              INT,
+    condominio_cerrado                           DOUBLE,
+    estacionamiento_visitas                      DOUBLE,
+    solo_familias                                DOUBLE,
+    piscina                                      DOUBLE,
+    quincho                                      DOUBLE,
+    conserjeria                                  DOUBLE,
+    ascensor                                     DOUBLE,
+    gastos_comunes                               DOUBLE,
+    dormitorios                                  DOUBLE,
+    banos                                        DOUBLE,
+    estacionamientos                             DOUBLE,
+    valor_uf_clp                                 DOUBLE,
+    valor_dolar_clp                              DOUBLE,
+    precio_clp                                   DOUBLE,
+    fecha_limpieza_plata                         TIMESTAMP,
+    superficie_util_imputada                     BOOLEAN,
+    superficie_total_imputada                    BOOLEAN,
+    fecha_imputacion_util                        TIMESTAMP,
+    fecha_imputacion_total                       TIMESTAMP
+)
+PARTITIONED BY (fecha_publicacion_aprox);

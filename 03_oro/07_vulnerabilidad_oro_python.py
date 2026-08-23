@@ -30,7 +30,7 @@
 # MAGIC salvo que el shapefile de origen se actualice y se re-suba a Bronce).
 # MAGIC
 # MAGIC **Requisito previo:**
-# MAGIC - `gran_concepcion.03_oro.avisos_features` ya generada (notebook 06).
+# MAGIC - `gran_concepcion.03_oro.stg_avisos_features` ya generada (notebook 06).
 # MAGIC - `gran_concepcion.01_bronce.poligonos_vulnerabilidad_uv` con datos.
 # MAGIC
 # MAGIC **Por qué este notebook SÍ lee una tabla de Bronce directamente** (a
@@ -89,7 +89,7 @@ columnas_a_asegurar = {
 for columna, tipo in columnas_a_asegurar.items():
     try:
         spark.sql(f"""
-            ALTER TABLE gran_concepcion.03_oro.avisos_features
+            ALTER TABLE gran_concepcion.03_oro.stg_avisos_features
             ADD COLUMNS ({columna} {tipo})
         """)
         print(f"Columna '{columna}' agregada.")
@@ -136,7 +136,7 @@ print(f"{len(poligonos)} polígonos de Unidad Vecinal cargados.")
 
 pendientes_rows = spark.sql("""
     SELECT id_aviso, latitud, longitud
-    FROM gran_concepcion.03_oro.avisos_features
+    FROM gran_concepcion.03_oro.stg_avisos_features
     WHERE latitud IS NOT NULL AND longitud IS NOT NULL AND uv_rsh IS NULL
 """).collect()
 
@@ -184,7 +184,7 @@ print(f"{len(resueltos)} avisos resueltos. {sin_uv} sin Unidad Vecinal asignada 
 
 # MAGIC %md
 # MAGIC ### 7. Escribir los resultados de vuelta (MERGE, no INSERT)
-# MAGIC Las filas ya existen en `avisos_features` — se actualizan solo las
+# MAGIC Las filas ya existen en `stg_avisos_features` — se actualizan solo las
 # MAGIC columnas de vulnerabilidad de los avisos resueltos en esta corrida.
 
 # COMMAND ----------
@@ -200,7 +200,7 @@ else:
 # MAGIC %md
 # MAGIC #### Chequeo de duplicados (inspección manual)
 # MAGIC `id_aviso` es la clave de upsert del `MERGE` de abajo — si esta consulta
-# MAGIC devuelve alguna fila, `avisos_features` tiene un `id_aviso` repetido (no
+# MAGIC devuelve alguna fila, `stg_avisos_features` tiene un `id_aviso` repetido (no
 # MAGIC debería pasar nunca, dado el dedup de `06_features_oro_sql.py` sección
 # MAGIC 15) y el `MERGE` fallaría con "multiple source rows matched".
 
@@ -208,14 +208,14 @@ else:
 
 # MAGIC %sql
 # MAGIC SELECT id_aviso, COUNT(*) AS veces
-# MAGIC FROM gran_concepcion.03_oro.avisos_features
+# MAGIC FROM gran_concepcion.03_oro.stg_avisos_features
 # MAGIC GROUP BY id_aviso
 # MAGIC HAVING COUNT(*) > 1
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC MERGE INTO gran_concepcion.03_oro.avisos_features AS oro
+# MAGIC MERGE INTO gran_concepcion.03_oro.stg_avisos_features AS oro
 # MAGIC USING vulnerabilidad_resuelta_tmp AS nuevo
 # MAGIC ON oro.id_aviso = nuevo.id_aviso
 # MAGIC WHEN MATCHED THEN UPDATE SET
@@ -237,7 +237,7 @@ else:
 
 # COMMAND ----------
 
-spark.sql("OPTIMIZE gran_concepcion.03_oro.avisos_features ZORDER BY (id_aviso)")
+spark.sql("OPTIMIZE gran_concepcion.03_oro.stg_avisos_features ZORDER BY (id_aviso)")
 
 # COMMAND ----------
 
@@ -252,4 +252,4 @@ spark.sql("OPTIMIZE gran_concepcion.03_oro.avisos_features ZORDER BY (id_aviso)"
 # MAGIC     SUM(CASE WHEN uv_rsh IS NOT NULL THEN 1 ELSE 0 END) AS con_vulnerabilidad_resuelta,
 # MAGIC     SUM(CASE WHEN uv_rsh IS NULL AND latitud IS NOT NULL AND longitud IS NOT NULL THEN 1 ELSE 0 END) AS pendientes_o_sin_poligono,
 # MAGIC     SUM(CASE WHEN latitud IS NULL OR longitud IS NULL THEN 1 ELSE 0 END) AS sin_coordenadas
-# MAGIC FROM gran_concepcion.03_oro.avisos_features
+# MAGIC FROM gran_concepcion.03_oro.stg_avisos_features
