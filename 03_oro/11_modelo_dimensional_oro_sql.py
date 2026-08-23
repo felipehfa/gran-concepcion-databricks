@@ -180,6 +180,15 @@ print("Tablas dimensionales verificadas/creadas.")
 # MAGIC quedan como `INT` (0/1), no `BOOLEAN`: así vienen tipados desde
 # MAGIC `04_limpieza_plata_sql.py`, y castear acá metería una conversión de tipo
 # MAGIC innecesaria al `MERGE`.
+# MAGIC
+# MAGIC (Hasta la corrida que corrigió el schema drift de `avisos_limpios`/
+# MAGIC `stg_avisos_features`, `ascensor`/`piscina`/`conserjeria`/
+# MAGIC `condominio_cerrado`/`estacionamiento_visitas`/`solo_familias` llegaban
+# MAGIC en realidad como `DOUBLE` desde la fuente, y este `MERGE` funcionaba solo
+# MAGIC porque Spark angostaba el tipo en silencio al insertar contra la columna
+# MAGIC `INT` del target — ver `02_plata/ddl/avisos_limpios.py` para el detalle.
+# MAGIC Ya corregido en la fuente, este `MERGE` ya no depende de ese cast
+# MAGIC implícito.)
 
 # COMMAND ----------
 

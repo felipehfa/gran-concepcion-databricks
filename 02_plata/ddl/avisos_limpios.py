@@ -22,15 +22,16 @@
 # MAGIC referencia de solo lectura: correrla no reemplaza el
 # MAGIC `CREATE TABLE ... AS SELECT` real del notebook fuente.
 # MAGIC
-# MAGIC Nota: `amoblado`/`admite_mascotas` quedaron tipadas `INT` mientras que el
-# MAGIC resto de los booleanos derivados del mismo patrón `CASE WHEN`
-# MAGIC (`condominio_cerrado`, `estacionamiento_visitas`, `solo_familias`,
-# MAGIC `piscina`, `quincho`, `conserjeria`, `ascensor`) quedaron `DOUBLE` —
-# MAGIC inconsistencia de inferencia de tipo entre corridas incrementales, no
-# MAGIC corregida acá para que esta celda siga reflejando el catálogo real.
-# MAGIC `solo_familias_texto` está 100% NULL en los datos actuales (Spark lo
-# MAGIC reporta como `void`); se declara `STRING` abajo, el tipo que le
-# MAGIC correspondería si tuviera datos.
+# MAGIC Nota: hasta la corrida que corrigió esto, `condominio_cerrado`,
+# MAGIC `estacionamiento_visitas`, `solo_familias`, `piscina`, `quincho`,
+# MAGIC `conserjeria` y `ascensor` habían quedado tipadas `DOUBLE` (schema drift
+# MAGIC histórico) mientras `amoblado`/`admite_mascotas` — mismo patrón
+# MAGIC `CASE WHEN ... THEN 1 WHEN ... THEN 0 END` — ya eran `INT`. Se
+# MAGIC normalizaron las 9 a `INT` con un `CREATE OR REPLACE TABLE ... AS SELECT`
+# MAGIC (Delta no permite angostar tipo con `ALTER TABLE`). También se corrigió
+# MAGIC `solo_familias_texto`, que había quedado `void` (100% NULL en ese
+# MAGIC momento) y rompía el `INSERT INTO` incremental en cuanto llegaba un
+# MAGIC aviso real con ese campo poblado (`DELTA_METADATA_MISMATCH`).
 
 # COMMAND ----------
 
@@ -134,13 +135,13 @@ spark.sql("""
         distancia_min_m_clinicas                     DOUBLE,
         amoblado                                     INT,
         admite_mascotas                              INT,
-        condominio_cerrado                           DOUBLE,
-        estacionamiento_visitas                      DOUBLE,
-        solo_familias                                DOUBLE,
-        piscina                                      DOUBLE,
-        quincho                                      DOUBLE,
-        conserjeria                                  DOUBLE,
-        ascensor                                     DOUBLE,
+        condominio_cerrado                           INT,
+        estacionamiento_visitas                      INT,
+        solo_familias                                INT,
+        piscina                                      INT,
+        quincho                                      INT,
+        conserjeria                                  INT,
+        ascensor                                     INT,
         gastos_comunes                               DOUBLE,
         dormitorios                                  DOUBLE,
         banos                                        DOUBLE,

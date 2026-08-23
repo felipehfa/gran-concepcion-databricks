@@ -41,9 +41,15 @@
 # MAGIC   nunca se limpia. No se declara en el DDL de abajo (no debería existir
 # MAGIC   como columna permanente); si aparece en `DESCRIBE TABLE`, es la señal
 # MAGIC   de que ese bug sigue sin corregirse en `06_features_oro_sql.py`.
-# MAGIC - `solo_familias_texto` puede reportar tipo `void` en `DESCRIBE TABLE` si
-# MAGIC   el 100% de las filas actuales tienen NULL ahí — se declara `STRING`
-# MAGIC   abajo, el tipo que le corresponde.
+# MAGIC - `condominio_cerrado`/`estacionamiento_visitas`/`solo_familias`/
+# MAGIC   `piscina`/`quincho`/`conserjeria`/`ascensor` y `solo_familias_texto` se
+# MAGIC   normalizaron con un `CREATE OR REPLACE TABLE ... AS SELECT` (mismo fix
+# MAGIC   que en `avisos_limpios`, ver `02_plata/ddl/avisos_limpios.py`): los 7
+# MAGIC   booleanos pasaron de `DOUBLE` a `INT` (mismo tipo que
+# MAGIC   `amoblado`/`admite_mascotas`) y `solo_familias_texto` de `void` a
+# MAGIC   `STRING` — este último bloqueaba el `INSERT INTO` incremental de
+# MAGIC   `06_features_oro_sql.py` en cuanto llegaba un aviso con ese campo
+# MAGIC   poblado (`DELTA_METADATA_MISMATCH`).
 
 # COMMAND ----------
 
@@ -132,8 +138,8 @@ spark.sql("""
         distancia_min_m_hospitales                   DOUBLE,
         distancia_min_m_clinicas                     DOUBLE,
         admite_mascotas                              INT,
-        solo_familias                                DOUBLE,
-        quincho                                      DOUBLE,
+        solo_familias                                INT,
+        quincho                                      INT,
         dormitorios                                  DOUBLE,
         banos                                        DOUBLE,
         valor_uf_clp                                 DOUBLE,
@@ -150,11 +156,11 @@ spark.sql("""
         amoblado                                     INT,
         estacionamientos                             DOUBLE,
         bodegas                                      DOUBLE,
-        conserjeria                                  DOUBLE,
-        estacionamiento_visitas                      DOUBLE,
-        condominio_cerrado                           DOUBLE,
-        piscina                                      DOUBLE,
-        ascensor                                     DOUBLE,
+        conserjeria                                  INT,
+        estacionamiento_visitas                      INT,
+        condominio_cerrado                           INT,
+        piscina                                      INT,
+        ascensor                                     INT,
         gastos_comunes                               DOUBLE,
         cantidad_paraderos                           INT,
         cantidad_estaciones_metro                    INT,

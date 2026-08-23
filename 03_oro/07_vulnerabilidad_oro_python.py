@@ -64,6 +64,7 @@
 from datetime import datetime
 
 import pandas as pd
+from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 from shapely import wkt
 from shapely.geometry import Point
 
@@ -186,14 +187,32 @@ print(f"{len(resueltos)} avisos resueltos. {sin_uv} sin Unidad Vecinal asignada 
 # MAGIC ### 7. Escribir los resultados de vuelta (MERGE, no INSERT)
 # MAGIC Las filas ya existen en `stg_avisos_features` — se actualizan solo las
 # MAGIC columnas de vulnerabilidad de los avisos resueltos en esta corrida.
+# MAGIC
+# MAGIC La vista temporal se crea SIEMPRE, aunque `resueltos` esté vacío (ningún
+# MAGIC aviso pendiente cayó dentro de un polígono, o no había avisos pendientes):
+# MAGIC el `MERGE` de la celda siguiente la referencia incondicionalmente, y una
+# MAGIC vista vacía con el esquema correcto lo deja como no-op en vez de romper
+# MAGIC con `TABLE_OR_VIEW_NOT_FOUND`.
 
 # COMMAND ----------
 
+esquema_vulnerabilidad = StructType([
+    StructField("id_aviso", StringType(), False),
+    StructField("uv_rsh", StringType(), True),
+    StructField("rank_nac", DoubleType(), True),
+    StructField("pob_rsh_uv", DoubleType(), True),
+    StructField("p_urbano", DoubleType(), True),
+    StructField("c_ig_com", DoubleType(), True),
+    StructField("hog_uv", DoubleType(), True),
+    StructField("fecha_vulnerabilidad_oro", StringType(), True),
+])
+
 if len(resueltos) == 0:
     print("No hay avisos nuevos para actualizar.")
+    spark.createDataFrame([], esquema_vulnerabilidad).createOrReplaceTempView("vulnerabilidad_resuelta_tmp")
 else:
     df_resueltos = pd.DataFrame(resueltos)
-    spark.createDataFrame(df_resueltos).createOrReplaceTempView("vulnerabilidad_resuelta_tmp")
+    spark.createDataFrame(df_resueltos, esquema_vulnerabilidad).createOrReplaceTempView("vulnerabilidad_resuelta_tmp")
 
 # COMMAND ----------
 
