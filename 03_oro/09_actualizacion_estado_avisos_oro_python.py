@@ -125,6 +125,24 @@ def construir_referer(comuna, tipo_propiedad):
     return f"{BASE_URL}/{OPERACION}/{tipo_propiedad}/{comuna}"
 
 
+# El sitio, ante tráfico que clasifica como automatizado, puede redirigir
+# CUALQUIER URL (incluida la portada) a un muro de login/verificación de
+# cuenta en vez de devolver el contenido pedido - con status 200 y sin
+# CAPTCHA visible, así que ni el chequeo de status code ni `hay_captcha` lo
+# detectan. Se distingue por la URL final tras redirects (no por contenido
+# del body), evaluado ANTES del chequeo de canonical/og:url: mismo criterio
+# y mismas rutas que `scrapers_base/02_scraper_detalle.py` del proyecto
+# original, que agregó esta detección tras un incidente real (agosto 2026,
+# ver README sección 9.5 de ese proyecto) donde este mismo patrón — sin esta
+# detección — hizo que ~1550 avisos activos se marcaran 'no_disponible' por
+# error en el equivalente de este notebook.
+RUTAS_MURO_VERIFICACION = ("/gz/account-verification", "/jms/mlc/lgz/login", "/registration-pi")
+
+
+def _es_muro_verificacion(url_final):
+    return any(ruta in url_final for ruta in RUTAS_MURO_VERIFICACION)
+
+
 CLAVES_ESTADO_PUBLICACION = ("item_status_message", "item_status_short_description_message")
 
 # COMMAND ----------
@@ -343,11 +361,25 @@ def hay_captcha(html):
 
 def obtener_estado_aviso(url, id_aviso, comuna, tipo_propiedad):
     """
-    Devuelve "resultado": "ok" | "captcha" | "no_encontrado" | "error".
+    Devuelve "resultado": "ok" | "captcha" | "bloqueado" | "no_encontrado" | "error".
+
+    "bloqueado" es distinto de "no_encontrado" aunque ambos se detectan sin
+    un status HTTP distinto de 200: "bloqueado" significa que el SITIO
+    ENTERO está redirigiendo a un muro de verificación (ver
+    `_es_muro_verificacion`), no que este aviso en particular haya sido
+    eliminado - se resuelve en el primer intento igual que un CAPTCHA
+    (reintentar la misma URL no va a cambiar nada mientras el bloqueo esté
+    activo) y el llamador debe cortar la corrida completa sin tocar
+    `estado_publicacion` de ningún aviso.
+
     "no_encontrado" es distinto de "error": el fetch funcionó (status 200,
-    sin CAPTCHA) pero la página descargada no corresponde a `id_aviso`,
-    típicamente porque el aviso ya no existe. No tiene sentido reintentar la
-    misma URL, así que se resuelve en el primer intento.
+    sin CAPTCHA, sin muro de verificación) pero la página descargada no
+    corresponde a `id_aviso`, típicamente porque el aviso ya no existe. No
+    tiene sentido reintentar la misma URL, así que se resuelve en el primer
+    intento, sin pasar por el loop de reintentos. Pero un mismatch de
+    canonical/og:url puede tener otras causas además de "el aviso ya no
+    existe" (ver incidente de agosto 2026 en el proyecto original), así que
+    el llamador ya no lo trata como confirmación inmediata de eliminación.
     """
     referer = construir_referer(comuna, tipo_propiedad)
     intentos_totales = 1 + REINTENTOS_TRAS_ERROR
@@ -360,6 +392,16 @@ def obtener_estado_aviso(url, id_aviso, comuna, tipo_propiedad):
             if resp.status_code != 200:
                 ultimo_motivo = f"status HTTP {resp.status_code}"
                 raise ValueError(ultimo_motivo)
+
+            if _es_muro_verificacion(resp.url):
+                log.error(f"Muro de verificación de cuenta detectado al pedir {url} "
+                          f"(redirigido a {resp.url}). Esto es el SITIO bloqueando tráfico "
+                          f"automatizado en general, no que {id_aviso} en particular haya sido "
+                          f"eliminado.")
+                return {
+                    "resultado": "bloqueado",
+                    "motivo": f"redirigido a muro de verificación ({resp.url})",
+                }
 
             if hay_captcha(resp.text):
                 return {"resultado": "captcha", "motivo": "captcha"}
@@ -426,7 +468,22 @@ def visitar_aviso_oro(fila):
     """
     Re-chequea un aviso y aplica de inmediato las consecuencias de
     persistencia según el resultado. Devuelve 'ok', 'cambio_estado',
-    'no_disponible', 'captcha' o 'error'.
+    'no_disponible', 'captcha', 'bloqueado' o 'error'.
+
+    HISTORIAL (por qué "no_encontrado" ya NO marca 'no_disponible' de
+    inmediato): hasta que se detectó el incidente de agosto 2026 en el
+    proyecto original (ver README de ese proyecto, sección 9.5), este método
+    asumía que "no_encontrado" (fetch OK, pero el HTML descargado no
+    corresponde al aviso) era prueba suficiente de que el aviso fue
+    eliminado. Esa asunción resultó falsa: un muro de verificación de cuenta
+    del sitio dispara exactamente esa misma condición para TODOS los avisos
+    por igual, y de haber estado activa acá habría marcado en masa avisos
+    activos como 'no_disponible' por error. Ahora ese caso (bloqueo de todo
+    el sitio) se detecta aparte como "bloqueado" y corta la corrida sin
+    tocar ningún aviso; lo que sigue devolviendo "no_encontrado" ya
+    descartó esa causa específica, pero se trata con la misma cautela que
+    un error de red (pasa por `intentos_fallidos_chequeo_estado_oro`, no
+    marca nada de inmediato).
     """
     id_aviso = fila["id_aviso"]
     url = fila["url"]
@@ -440,15 +497,18 @@ def visitar_aviso_oro(fila):
         registrar_captcha()
         return "captcha"
 
-    if resultado["resultado"] == "no_encontrado":
-        actualizar_estado_publicacion_oro(id_aviso, "no_disponible")
-        log.warning(f"{id_aviso}: {resultado['motivo']}. Se marca estado_publicacion='no_disponible' de inmediato.")
-        time.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
-        return "no_disponible"
+    if resultado["resultado"] == "bloqueado":
+        log.error(f"Muro de verificación detectado en {url} ({resultado['motivo']}). El sitio está "
+                  f"bloqueando todo el tráfico automatizado, no es que {id_aviso} en particular haya "
+                  f"sido eliminado. Deteniendo la corrida ahora mismo sin tocar estado_publicacion. "
+                  f"Mismo cooldown que un CAPTCHA ({COOLDOWN_TRAS_CAPTCHA_MINUTOS} min) antes de "
+                  f"reintentar.")
+        registrar_captcha()
+        return "bloqueado"
 
-    if resultado["resultado"] == "error":
+    if resultado["resultado"] in ("error", "no_encontrado"):
         nuevo_contador = incrementar_intentos_fallidos_chequeo_estado_oro(id_aviso)
-        log.warning(f"No se pudo re-chequear {id_aviso} tras reintentos ({resultado['motivo']}). "
+        log.warning(f"{id_aviso}: {resultado['resultado']} ({resultado['motivo']}). "
                     f"intentos_fallidos_chequeo_estado_oro={nuevo_contador}.")
         if nuevo_contador > MAX_INTENTOS_FALLIDOS_CHEQUEO_ESTADO:
             actualizar_estado_publicacion_oro(id_aviso, "no_disponible")
@@ -528,7 +588,12 @@ detenido_por_captcha = False
 for fila in pendientes:
     resultado = visitar_aviso_oro(fila)
 
-    if resultado == "captcha":
+    if resultado in ("captcha", "bloqueado"):
+        # "bloqueado" comparte la misma bandera/cooldown que "captcha":
+        # ambos significan "el sitio nos está frenando a todos por igual
+        # ahora mismo", así que la respuesta correcta es la misma (cortar
+        # la corrida completa y esperar), aunque la causa raíz sea distinta
+        # (ver visitar_aviso_oro).
         detenido_por_captcha = True
         break
     if resultado in ("ok", "cambio_estado"):
