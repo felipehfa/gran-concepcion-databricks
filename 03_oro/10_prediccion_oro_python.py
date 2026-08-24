@@ -54,6 +54,7 @@
 
 import json
 import pickle
+import sys
 
 import numpy as np
 import pandas as pd
@@ -144,8 +145,26 @@ else:
 # MAGIC `parametros_produccion.json` trae la lista de features en el orden exacto
 # MAGIC que el modelo espera, y la calibración de oportunidad/confianza
 # MAGIC calculada en el test set al entrenar.
+# MAGIC
+# MAGIC **Compat numpy 2.x → 1.x:** el `.pkl` se serializó con el entorno de
+# MAGIC entrenamiento (`numpy==2.4.6`, ver `requirements.txt` del proyecto
+# MAGIC original), que en la versión 2.0 renombró el paquete interno
+# MAGIC `numpy.core` a `numpy._core`. El entorno serverless de este notebook trae
+# MAGIC `numpy==1.23.5` (no declaramos una versión propia porque `spark` —
+# MAGIC Spark Connect en serverless — depende de su propio numpy/pandas/pyarrow
+# MAGIC internos; fijar una versión distinta en las dependencias del notebook
+# MAGIC rompe la inicialización de `spark`, verificado). En vez de eso, se
+# MAGIC alias `numpy._core` al `numpy.core` de la 1.x justo antes de
+# MAGIC deserializar — mismo contenido, solo cambió el nombre del módulo entre
+# MAGIC versiones, así que la reconstrucción de arrays/dtypes es equivalente.
 
 # COMMAND ----------
+
+if not hasattr(np, "_core"):
+    sys.modules["numpy._core"] = np.core
+    sys.modules["numpy._core.multiarray"] = np.core.multiarray
+    sys.modules["numpy._core._multiarray_umath"] = np.core._multiarray_umath
+    sys.modules["numpy._core.umath"] = np.core.umath
 
 with open(RUTA_MODELO_PKL, "rb") as f:
     modelo_guardado = pickle.load(f)

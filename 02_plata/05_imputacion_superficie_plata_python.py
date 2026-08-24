@@ -148,18 +148,41 @@ df_plata.loc[mask_falta_util, ["id_aviso", "superficie_util_m2", "superficie_uti
 
 # MAGIC %md
 # MAGIC ### 6. Guardar superficie útil corregida en la tabla de Plata
-# MAGIC Se escribe primero este resultado, antes de tocar superficie total.
+# MAGIC `MERGE` dirigido solo a las filas imputadas esta corrida y solo a las 3
+# MAGIC columnas relevantes (`superficie_util_m2`, `superficie_util_imputada`,
+# MAGIC `fecha_imputacion_util`) — **no** un `CREATE OR REPLACE TABLE ... AS
+# MAGIC SELECT *` sobre todo `avisos_limpios`. Ese patrón (usado antes acá)
+# MAGIC reescribía la tabla completa pasando cada corrida por un round-trip a
+# MAGIC pandas (`spark.createDataFrame(df_plata)`), que reinfiere el tipo de
+# MAGIC TODAS las columnas desde los dtypes de pandas — no solo las que este
+# MAGIC notebook realmente toca. Eso pisaba en silencio, en cada corrida,
+# MAGIC cualquier tipo explícito fijado aguas arriba (ej. los 7 flags booleanos
+# MAGIC de `04_limpieza_plata_sql.py`, que pandas infiere `float64` en cuanto hay
+# MAGIC un solo NULL). El `MERGE` no puede tocar el esquema de columnas que ni
+# MAGIC siquiera referencia.
 
 # COMMAND ----------
 
-spark.createDataFrame(df_plata).createOrReplaceTempView("avisos_util_imputada_tmp")
+if mask_falta_util.sum() > 0:
+    columnas_actualizar_util = [
+        "id_aviso", "superficie_util_m2", "superficie_util_imputada", "fecha_imputacion_util",
+    ]
+    spark.createDataFrame(
+        df_plata.loc[mask_falta_util, columnas_actualizar_util]
+    ).createOrReplaceTempView("util_imputado_tmp")
 
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE gran_concepcion.02_plata.avisos_limpios
-# MAGIC PARTITIONED BY (fecha_publicacion_aprox)
-# MAGIC AS SELECT * FROM avisos_util_imputada_tmp
+    spark.sql("""
+        MERGE INTO gran_concepcion.02_plata.avisos_limpios AS t
+        USING util_imputado_tmp AS s
+        ON t.id_aviso = s.id_aviso
+        WHEN MATCHED THEN UPDATE SET
+            t.superficie_util_m2 = s.superficie_util_m2,
+            t.superficie_util_imputada = s.superficie_util_imputada,
+            t.fecha_imputacion_util = s.fecha_imputacion_util
+    """)
+    print(f"{mask_falta_util.sum()} filas actualizadas en avisos_limpios (superficie útil).")
+else:
+    print("Nada que guardar: no hubo valores de superficie_util_m2 imputados esta corrida.")
 
 # COMMAND ----------
 
@@ -247,17 +270,32 @@ df_plata.loc[mask_falta_total, ["id_aviso", "superficie_total_m2", "superficie_t
 
 # MAGIC %md
 # MAGIC ### 12. Guardar superficie total corregida en la tabla de Plata
+# MAGIC Mismo `MERGE` dirigido que en la sección 6 — ver esa celda para el porqué
+# MAGIC del cambio respecto al `CREATE OR REPLACE TABLE ... AS SELECT *` que
+# MAGIC usaba antes.
 
 # COMMAND ----------
 
-spark.createDataFrame(df_plata).createOrReplaceTempView("avisos_total_imputada_tmp")
+if mask_falta_total.sum() > 0:
+    columnas_actualizar_total = [
+        "id_aviso", "superficie_total_m2", "superficie_total_imputada", "fecha_imputacion_total",
+    ]
+    spark.createDataFrame(
+        df_plata.loc[mask_falta_total, columnas_actualizar_total]
+    ).createOrReplaceTempView("total_imputado_tmp")
 
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE gran_concepcion.02_plata.avisos_limpios
-# MAGIC PARTITIONED BY (fecha_publicacion_aprox)
-# MAGIC AS SELECT * FROM avisos_total_imputada_tmp
+    spark.sql("""
+        MERGE INTO gran_concepcion.02_plata.avisos_limpios AS t
+        USING total_imputado_tmp AS s
+        ON t.id_aviso = s.id_aviso
+        WHEN MATCHED THEN UPDATE SET
+            t.superficie_total_m2 = s.superficie_total_m2,
+            t.superficie_total_imputada = s.superficie_total_imputada,
+            t.fecha_imputacion_total = s.fecha_imputacion_total
+    """)
+    print(f"{mask_falta_total.sum()} filas actualizadas en avisos_limpios (superficie total).")
+else:
+    print("Nada que guardar: no hubo valores de superficie_total_m2 imputados esta corrida.")
 
 # COMMAND ----------
 

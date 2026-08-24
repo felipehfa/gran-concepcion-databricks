@@ -29,6 +29,7 @@ from datetime import date
 
 import pandas as pd
 import requests
+from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 # COMMAND ----------
 
@@ -151,22 +152,33 @@ df_uf_nuevos.head()
 
 # MAGIC %md
 # MAGIC ### 6. Crear vista temporal
-# MAGIC Solo si hay filas nuevas para insertar — si todas las fechas necesarias ya
-# MAGIC estaban cacheadas, no hay nada que hacer.
+# MAGIC Se crea SIEMPRE, aunque `df_uf_nuevos` esté vacío (todas las fechas
+# MAGIC necesarias ya estaban cacheadas): el `INSERT` de la celda siguiente la
+# MAGIC referencia incondicionalmente, y una vista vacía con el esquema correcto
+# MAGIC lo deja como no-op en vez de romper con `TABLE_OR_VIEW_NOT_FOUND`.
 
 # COMMAND ----------
 
+esquema_valores_pesos_nuevos = StructType([
+    StructField("fecha_valor", StringType(), False),
+    StructField("valor_uf_clp", DoubleType(), True),
+    StructField("valor_dolar_clp", DoubleType(), True),
+    StructField("fecha_consulta", StringType(), False),
+])
+
 if len(df_uf_nuevos) > 0:
-    spark.createDataFrame(df_uf_nuevos).createOrReplaceTempView("valores_pesos_nuevos_tmp")
+    spark.createDataFrame(df_uf_nuevos, esquema_valores_pesos_nuevos).createOrReplaceTempView("valores_pesos_nuevos_tmp")
 else:
     print("No hay filas nuevas para insertar — todas las fechas necesarias ya estaban cacheadas.")
+    spark.createDataFrame([], esquema_valores_pesos_nuevos).createOrReplaceTempView("valores_pesos_nuevos_tmp")
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ### 7. Insertar las fechas nuevas
-# MAGIC Correr solo si la celda anterior confirmó que hay filas nuevas — si no,
-# MAGIC esta celda fallaría al no existir la vista temporal.
+# MAGIC La vista temporal de la celda anterior ya existe siempre (vacía si no
+# MAGIC había fechas nuevas), así que este `INSERT` es un no-op seguro en ese
+# MAGIC caso — no puede fallar por vista inexistente.
 
 # COMMAND ----------
 
