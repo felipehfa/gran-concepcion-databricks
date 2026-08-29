@@ -523,7 +523,172 @@ spark.sql("OPTIMIZE gran_concepcion.03_oro.fact_aviso ZORDER BY (id_aviso)")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 10. Verificar
+# MAGIC ### 10. Capa de consumo — vistas semánticas
+# MAGIC `CREATE OR REPLACE VIEW` (idempotente, sin datos propios) de las tres
+# MAGIC vistas que consume el dashboard AI/BI "Buscador de Arriendos - Gran
+# MAGIC Concepcion". El dashboard lee `SELECT * FROM` estas vistas en vez de
+# MAGIC repetir los joins y la lógica de negocio en el JSON de cada dataset —
+# MAGIC así la definición queda versionada acá. Definición standalone de cada
+# MAGIC una (para recrear en un workspace nuevo o inspeccionar sin abrir este
+# MAGIC notebook) en `03_oro/views/vw_buscador_*.py`.
+# MAGIC
+# MAGIC - `vw_buscador_avisos` — 1 fila por aviso publicado con predicción vigente.
+# MAGIC - `vw_buscador_historial_diario` — serie diaria de avisos activos / entran / salen.
+# MAGIC - `vw_buscador_valor_m2_diario` — serie diaria de valor por m² útil (media/mediana/desv).
+
+# COMMAND ----------
+
+spark.sql("""
+    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_buscador_avisos AS
+    SELECT
+        f.id_aviso,
+        s.titulo,
+        f.url,
+        f.precio_clp_real AS precio,
+        f.gastos_comunes_real AS gastos_comunes,
+        f.costo_total_real AS costo_total,
+        u.comuna,
+        b.barrio,
+        b.nivel_barrio,
+        u.latitud,
+        u.longitud,
+        d.dormitorios,
+        d.banos,
+        d.superficie_util_m2,
+        d.superficie_total_m2,
+        d.antiguedad_anos,
+        CAST(d.amoblado AS BOOLEAN)    AS amoblado,
+        CAST(d.piscina AS BOOLEAN)     AS piscina,
+        CAST(d.ascensor AS BOOLEAN)    AS ascensor,
+        CAST(d.conserjeria AS BOOLEAN) AS conserjeria,
+        d.estacionamientos,
+        p.costo_total_predicho,
+        p.z_robusto,
+        CASE p.etiqueta
+            WHEN 'oportunidad'       THEN 'Oportunidad'
+            WHEN 'precio_de_mercado' THEN 'Precio de mercado'
+            WHEN 'caro'              THEN 'Caro'
+            ELSE p.etiqueta
+        END AS etiqueta,
+        CASE p.nivel_confianza
+            WHEN 'alta confianza'  THEN 'Alta'
+            WHEN 'confianza media' THEN 'Media'
+            WHEN 'baja confianza'  THEN 'Baja'
+            ELSE p.nivel_confianza
+        END AS nivel_confianza,
+        e.estado_publicacion,
+        f.fecha_publicacion_precision
+    FROM gran_concepcion.03_oro.fact_aviso f
+    JOIN gran_concepcion.03_oro.dim_descripcion_propiedad d ON f.descripcion_id = d.descripcion_id
+    JOIN gran_concepcion.03_oro.dim_ubicacion u ON f.ubicacion_id = u.ubicacion_id
+    LEFT JOIN gran_concepcion.03_oro.dim_barrio b ON u.barrio_id = b.barrio_id
+    JOIN gran_concepcion.03_oro.dim_estado_aviso_scd2 e ON f.estado_aviso_scd_id = e.estado_aviso_scd_id
+    JOIN gran_concepcion.03_oro.dim_prediccion_scd2 p ON f.prediccion_scd_id = p.prediccion_scd_id
+    LEFT JOIN gran_concepcion.03_oro.stg_avisos_features s ON f.id_aviso = s.id_aviso
+    WHERE e.estado_publicacion IN ('activo', 'pausado')
+      AND u.latitud IS NOT NULL AND u.longitud IS NOT NULL
+""")
+
+print("vw_buscador_avisos creada/reemplazada.")
+
+# COMMAND ----------
+
+spark.sql("""
+    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_buscador_historial_diario AS
+    WITH fechas AS (
+      SELECT explode(sequence(
+        (SELECT DATE(MIN(valid_from)) FROM gran_concepcion.03_oro.dim_estado_aviso_scd2),
+        CURRENT_DATE(),
+        INTERVAL 1 DAY
+      )) AS fecha
+    ),
+    activos AS (
+      SELECT fc.fecha, e.id_aviso FROM fechas fc
+      JOIN gran_concepcion.03_oro.dim_estado_aviso_scd2 e
+        ON e.estado_publicacion = 'activo'
+       AND fc.fecha >= DATE(e.valid_from)
+       AND fc.fecha < COALESCE(DATE(e.valid_to), DATE_ADD(CURRENT_DATE(), 1))
+    ),
+    pausados AS (
+      SELECT fc.fecha, e.id_aviso FROM fechas fc
+      JOIN gran_concepcion.03_oro.dim_estado_aviso_scd2 e
+        ON e.estado_publicacion = 'pausado'
+       AND fc.fecha >= DATE(e.valid_from)
+       AND fc.fecha < COALESCE(DATE(e.valid_to), DATE_ADD(CURRENT_DATE(), 1))
+    ),
+    hoy_ayer AS (
+      SELECT h.fecha, h.id_aviso, (a.id_aviso IS NOT NULL) AS activo_hoy, (y.id_aviso IS NOT NULL) AS activo_ayer
+      FROM (SELECT DISTINCT fecha, id_aviso FROM activos UNION SELECT DATE_ADD(fecha,1), id_aviso FROM activos) h
+      LEFT JOIN activos a ON a.fecha = h.fecha AND a.id_aviso = h.id_aviso
+      LEFT JOIN activos y ON y.fecha = DATE_SUB(h.fecha,1) AND y.id_aviso = h.id_aviso
+    ),
+    entran_salen AS (
+      SELECT fecha,
+        SUM(CASE WHEN activo_hoy AND NOT activo_ayer THEN 1 ELSE 0 END) AS entran,
+        SUM(CASE WHEN activo_ayer AND NOT activo_hoy THEN 1 ELSE 0 END) AS salen
+      FROM hoy_ayer GROUP BY fecha
+    ),
+    totales_activo AS (
+      SELECT fecha, COUNT(DISTINCT id_aviso) AS total_activo FROM activos GROUP BY fecha
+    ),
+    totales_todos AS (
+      SELECT fecha, COUNT(DISTINCT id_aviso) AS total_activo_o_pausado
+      FROM (SELECT fecha, id_aviso FROM activos UNION SELECT fecha, id_aviso FROM pausados)
+      GROUP BY fecha
+    )
+    SELECT fc.fecha,
+      COALESCE(ta.total_activo,0) AS total_activo,
+      COALESCE(tt.total_activo_o_pausado,0) AS total_activo_o_pausado,
+      es.entran, es.salen
+    FROM fechas fc
+    LEFT JOIN totales_activo ta ON ta.fecha = fc.fecha
+    LEFT JOIN totales_todos tt ON tt.fecha = fc.fecha
+    LEFT JOIN entran_salen es ON es.fecha = fc.fecha
+    ORDER BY fc.fecha
+""")
+
+print("vw_buscador_historial_diario creada/reemplazada.")
+
+# COMMAND ----------
+
+spark.sql("""
+    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_buscador_valor_m2_diario AS
+    WITH fechas AS (
+      SELECT explode(sequence(
+        (SELECT DATE(MIN(valid_from)) FROM gran_concepcion.03_oro.dim_estado_aviso_scd2),
+        CURRENT_DATE(),
+        INTERVAL 1 DAY
+      )) AS fecha
+    ),
+    activos AS (
+      SELECT fc.fecha, e.id_aviso FROM fechas fc
+      JOIN gran_concepcion.03_oro.dim_estado_aviso_scd2 e
+        ON e.estado_publicacion = 'activo'
+       AND fc.fecha >= DATE(e.valid_from)
+       AND fc.fecha < COALESCE(DATE(e.valid_to), DATE_ADD(CURRENT_DATE(), 1))
+    ),
+    valor_actual AS (
+      SELECT f.id_aviso, f.costo_total_real / d.superficie_util_m2 AS valor_m2
+      FROM gran_concepcion.03_oro.fact_aviso f
+      JOIN gran_concepcion.03_oro.dim_descripcion_propiedad d ON f.descripcion_id = d.descripcion_id
+      WHERE d.superficie_util_m2 > 0
+    )
+    SELECT a.fecha,
+      AVG(v.valor_m2) AS media,
+      PERCENTILE(v.valor_m2, 0.5) AS mediana,
+      STDDEV(v.valor_m2) AS desviacion_estandar
+    FROM activos a
+    JOIN valor_actual v ON v.id_aviso = a.id_aviso
+    GROUP BY a.fecha
+    ORDER BY a.fecha
+""")
+
+print("vw_buscador_valor_m2_diario creada/reemplazada.")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### 11. Verificar
 
 # COMMAND ----------
 

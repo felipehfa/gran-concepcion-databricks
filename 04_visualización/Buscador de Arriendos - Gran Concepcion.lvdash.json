@@ -1,0 +1,1840 @@
+{
+  "datasets": [
+    {
+      "name": "ds_buscador",
+      "displayName": "Avisos (buscador)",
+      "queryLines": [
+        "SELECT * FROM gran_concepcion.03_oro.vw_buscador_avisos"
+      ]
+    },
+    {
+      "name": "ds_historial_diario",
+      "displayName": "Historial diario de estado",
+      "queryLines": [
+        "SELECT * FROM gran_concepcion.03_oro.vw_buscador_historial_diario"
+      ]
+    },
+    {
+      "name": "ds_valor_m2",
+      "displayName": "Valor por m2 diario",
+      "queryLines": [
+        "SELECT * FROM gran_concepcion.03_oro.vw_buscador_valor_m2_diario"
+      ]
+    },
+    {
+      "name": "ds_corridas",
+      "displayName": "ds_corridas",
+      "queryLines": [
+        "SELECT * FROM gran_concepcion.03_oro.vw_corridas"
+      ]
+    },
+    {
+      "name": "ds_corridas_tareas",
+      "displayName": "ds_corridas_tareas",
+      "queryLines": [
+        "SELECT * FROM gran_concepcion.03_oro.vw_corridas_tareas"
+      ]
+    },
+    {
+      "name": "ds_corridas_resumen",
+      "displayName": "ds_corridas_resumen",
+      "queryLines": [
+        "SELECT * FROM gran_concepcion.03_oro.vw_corridas_resumen"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "page_buscador",
+      "displayName": "🏠 Buscador",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_comuna",
+            "queries": [
+              {
+                "name": "filter_comuna_q",
+                "query": {
+                  "datasetName": "ds_buscador",
+                  "fields": [
+                    {
+                      "name": "comuna",
+                      "expression": "`comuna`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "comuna",
+                    "displayName": "Comuna",
+                    "queryName": "filter_comuna_q"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Comuna"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_etiqueta",
+            "queries": [
+              {
+                "name": "filter_etiqueta_q",
+                "query": {
+                  "datasetName": "ds_buscador",
+                  "fields": [
+                    {
+                      "name": "etiqueta",
+                      "expression": "`etiqueta`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "etiqueta",
+                    "displayName": "Etiqueta",
+                    "queryName": "filter_etiqueta_q"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Etiqueta del modelo"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_confianza",
+            "queries": [
+              {
+                "name": "filter_confianza_q",
+                "query": {
+                  "datasetName": "ds_buscador",
+                  "fields": [
+                    {
+                      "name": "nivel_confianza",
+                      "expression": "`nivel_confianza`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "nivel_confianza",
+                    "displayName": "Confianza",
+                    "queryName": "filter_confianza_q"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Nivel de confianza"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_estado",
+            "queries": [
+              {
+                "name": "dashboards/01f1a009f42a13b3bf3ab587f0d37685/datasets/01f1a3dc6ec81c889f19181545f3c281_estado_publicacion",
+                "query": {
+                  "datasetName": "ds_buscador",
+                  "fields": [
+                    {
+                      "name": "estado_publicacion",
+                      "expression": "`estado_publicacion`"
+                    },
+                    {
+                      "name": "estado_publicacion_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "selection": {
+                "defaultSelection": {
+                  "values": {
+                    "dataType": "STRING",
+                    "values": [
+                      {
+                        "value": "activo"
+                      }
+                    ]
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Estado (activo/pausado)",
+                  "fields": []
+                }
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "estado_publicacion",
+                    "queryName": "dashboards/01f1a009f42a13b3bf3ab587f0d37685/datasets/01f1a3dc6ec81c889f19181545f3c281_estado_publicacion"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_precio",
+            "queries": [
+              {
+                "name": "filter_precio_q",
+                "query": {
+                  "datasetName": "ds_buscador",
+                  "fields": [
+                    {
+                      "name": "min(precio)",
+                      "expression": "MIN(`precio`)"
+                    },
+                    {
+                      "name": "max(precio)",
+                      "expression": "MAX(`precio`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "range-slider",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "precio",
+                    "queryName": "filter_precio_q"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Rango de precio ($)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_superficie",
+            "queries": [
+              {
+                "name": "dashboards/01f1a009f42a13b3bf3ab587f0d37685/datasets/01f1a3dc6ec81c889f19181545f3c281_superficie_util_m2",
+                "query": {
+                  "datasetName": "ds_buscador",
+                  "fields": [
+                    {
+                      "name": "min(superficie_util_m2)",
+                      "expression": "MIN(`superficie_util_m2`)"
+                    },
+                    {
+                      "name": "max(superficie_util_m2)",
+                      "expression": "MAX(`superficie_util_m2`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Superficie útil (m²)",
+                  "fields": []
+                }
+              },
+              "widgetType": "range-slider",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "superficie_util_m2",
+                    "queryName": "dashboards/01f1a009f42a13b3bf3ab587f0d37685/datasets/01f1a3dc6ec81c889f19181545f3c281_superficie_util_m2"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_total",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_buscador",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Departamentos encontrados",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(*)",
+                  "rowNumber": 0,
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  },
+                  "displayName": "Departamentos encontrados"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "tabla_avisos",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_buscador",
+                  "fields": [
+                    {
+                      "name": "comuna",
+                      "expression": "`comuna`"
+                    },
+                    {
+                      "name": "dormitorios",
+                      "expression": "`dormitorios`"
+                    },
+                    {
+                      "name": "banos",
+                      "expression": "`banos`"
+                    },
+                    {
+                      "name": "superficie_util_m2",
+                      "expression": "`superficie_util_m2`"
+                    },
+                    {
+                      "name": "precio",
+                      "expression": "`precio`"
+                    },
+                    {
+                      "name": "gastos_comunes",
+                      "expression": "`gastos_comunes`"
+                    },
+                    {
+                      "name": "costo_total",
+                      "expression": "`costo_total`"
+                    },
+                    {
+                      "name": "costo_total_predicho",
+                      "expression": "`costo_total_predicho`"
+                    },
+                    {
+                      "name": "etiqueta",
+                      "expression": "`etiqueta`"
+                    },
+                    {
+                      "name": "nivel_confianza",
+                      "expression": "`nivel_confianza`"
+                    },
+                    {
+                      "name": "url",
+                      "expression": "`url`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Avisos",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "comuna",
+                    "displayName": "Comuna"
+                  },
+                  {
+                    "fieldName": "dormitorios",
+                    "contentAlignment": "center",
+                    "displayName": "Dorm."
+                  },
+                  {
+                    "fieldName": "banos",
+                    "contentAlignment": "center",
+                    "displayName": "Baños"
+                  },
+                  {
+                    "fieldName": "superficie_util_m2",
+                    "contentAlignment": "center",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      },
+                      "hideGroupSeparator": false
+                    },
+                    "displayName": "Sup. útil (m²)"
+                  },
+                  {
+                    "fieldName": "precio",
+                    "contentAlignment": "center",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "CLP",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      },
+                      "hideGroupSeparator": false,
+                      "negativeSign": "standard"
+                    },
+                    "displayName": "Precio ($)",
+                    "formatTemplate": "{{ @formatted }}",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operator": ">="
+                          },
+                          "backgroundColor": "#00A972"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "gastos_comunes",
+                    "contentAlignment": "center",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "CLP",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      },
+                      "hideGroupSeparator": false
+                    },
+                    "displayName": "Gastos comunes ($)"
+                  },
+                  {
+                    "fieldName": "costo_total",
+                    "contentAlignment": "center",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "CLP",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      },
+                      "hideGroupSeparator": false
+                    },
+                    "displayName": "Costo total real ($)"
+                  },
+                  {
+                    "fieldName": "costo_total_predicho",
+                    "contentAlignment": "center",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "CLP",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      },
+                      "hideGroupSeparator": false
+                    },
+                    "displayName": "Costo total predicho ($)"
+                  },
+                  {
+                    "fieldName": "etiqueta",
+                    "contentAlignment": "center",
+                    "displayName": "Etiqueta"
+                  },
+                  {
+                    "fieldName": "nivel_confianza",
+                    "contentAlignment": "center",
+                    "displayName": "Confianza"
+                  },
+                  {
+                    "fieldName": "url",
+                    "displayName": "Publicación"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 12
+          }
+        },
+        {
+          "widget": {
+            "name": "mapa_avisos",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_buscador",
+                  "fields": [
+                    {
+                      "name": "latitud",
+                      "expression": "`latitud`"
+                    },
+                    {
+                      "name": "longitud",
+                      "expression": "`longitud`"
+                    },
+                    {
+                      "name": "etiqueta",
+                      "expression": "`etiqueta`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "symbol-map",
+              "encodings": {
+                "coordinates": {
+                  "latitude": {
+                    "fieldName": "latitud"
+                  },
+                  "longitude": {
+                    "fieldName": "longitud"
+                  }
+                },
+                "color": {
+                  "fieldName": "etiqueta",
+                  "displayName": "Etiqueta",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "Oportunidad",
+                        "color": "#2E7D32"
+                      },
+                      {
+                        "value": "Precio de mercado",
+                        "color": "#5A6B7D"
+                      },
+                      {
+                        "value": "Caro",
+                        "color": "#C62828"
+                      }
+                    ]
+                  }
+                }
+              },
+              "mark": {
+                "opacity": 0.8
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Mapa de avisos"
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 6,
+            "width": 6,
+            "height": 12
+          }
+        },
+        {
+          "widget": {
+            "name": "6e9b69d2",
+            "queries": [
+              {
+                "name": "dashboards/01f1a009f42a13b3bf3ab587f0d37685/datasets/01f1a3dc6ec81c889f19181545f3c281_dormitorios",
+                "query": {
+                  "datasetName": "ds_buscador",
+                  "fields": [
+                    {
+                      "name": "min(dormitorios)",
+                      "expression": "MIN(`dormitorios`)"
+                    },
+                    {
+                      "name": "max(dormitorios)",
+                      "expression": "MAX(`dormitorios`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Dormitorios",
+                  "fields": []
+                }
+              },
+              "widgetType": "range-slider",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "dormitorios",
+                    "queryName": "dashboards/01f1a009f42a13b3bf3ab587f0d37685/datasets/01f1a3dc6ec81c889f19181545f3c281_dormitorios"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "b11777dd",
+            "queries": [
+              {
+                "name": "dashboards/01f1a009f42a13b3bf3ab587f0d37685/datasets/01f1a3dc6ec81c889f19181545f3c281_banos",
+                "query": {
+                  "datasetName": "ds_buscador",
+                  "fields": [
+                    {
+                      "name": "min(banos)",
+                      "expression": "MIN(`banos`)"
+                    },
+                    {
+                      "name": "max(banos)",
+                      "expression": "MAX(`banos`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Baños",
+                  "fields": []
+                }
+              },
+              "widgetType": "range-slider",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "banos",
+                    "queryName": "dashboards/01f1a009f42a13b3bf3ab587f0d37685/datasets/01f1a3dc6ec81c889f19181545f3c281_banos"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "page_estadisticas",
+      "displayName": "📊 Estadísticas diarias",
+      "layout": [
+        {
+          "widget": {
+            "name": "grafico_total",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_historial_diario",
+                  "fields": [
+                    {
+                      "name": "fecha",
+                      "expression": "`fecha`"
+                    },
+                    {
+                      "name": "total_activo",
+                      "expression": "`total_activo`"
+                    },
+                    {
+                      "name": "total_activo_o_pausado",
+                      "expression": "`total_activo_o_pausado`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "fecha",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Fecha"
+                },
+                "y": {
+                  "fieldName": "total_activo",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Avisos activos"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avisos disponibles por día"
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "grafico_entran_salen",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_historial_diario",
+                  "fields": [
+                    {
+                      "name": "fecha",
+                      "expression": "`fecha`"
+                    },
+                    {
+                      "name": "entran",
+                      "expression": "`entran`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "fecha",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Fecha"
+                },
+                "y": {
+                  "fieldName": "entran",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Entran"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Entradas al estado activo (por día)"
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "grafico_salen",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_historial_diario",
+                  "fields": [
+                    {
+                      "name": "fecha",
+                      "expression": "`fecha`"
+                    },
+                    {
+                      "name": "salen",
+                      "expression": "`salen`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "fecha",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Fecha"
+                },
+                "y": {
+                  "fieldName": "salen",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Salen"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Salidas del estado activo (por día)"
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 6,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "grafico_valor_m2",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_valor_m2",
+                  "fields": [
+                    {
+                      "name": "fecha",
+                      "expression": "`fecha`"
+                    },
+                    {
+                      "name": "media",
+                      "expression": "`media`"
+                    },
+                    {
+                      "name": "mediana",
+                      "expression": "`mediana`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "fecha",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Fecha"
+                },
+                "y": {
+                  "fieldName": "media",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "$/m² útil (media)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Valor por m² útil (CLP)"
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "page_explicacion",
+      "displayName": "ℹ️ Cómo funciona",
+      "layout": [
+        {
+          "widget": {
+            "name": "texto_explicacion",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Qué es esto\n",
+                "\n",
+                "Este dashboard usa un **modelo predictivo** (no una tasación ni un servicio profesional) entrenado con avisos de arriendo de departamentos del Gran Concepción, recolectados por un scraper propio desde Portal Inmobiliario. El modelo estima cuál **debería** ser el costo total mensual (arriendo + gastos comunes) de cada aviso, y compara ese costo estimado contra el costo total real para detectar si un aviso está por debajo, en línea, o por sobre lo esperado.\n",
+                "\n",
+                "## Cuándo es \"Oportunidad\", \"Precio de mercado\" o \"Caro\"\n",
+                "\n",
+                "Para cada aviso se calcula un **z-score robusto**: qué tan lejos está su error (costo total real menos costo total predicho) de la mediana de error de avisos de costo similar, medido en unidades de MAD (desviación absoluta mediana).\n",
+                "\n",
+                "- **Oportunidad**: el costo total real está bastante más bajo de lo esperado (z-score robusto menor a -1).\n",
+                "- **Caro**: el costo total real está bastante más alto de lo esperado (z-score robusto mayor a 1).\n",
+                "- **Precio de mercado**: el costo total real está dentro de lo esperado.\n",
+                "\n",
+                "## Qué significa el nivel de confianza\n",
+                "\n",
+                "El modelo es un **ensamble de 10 modelos** entrenados con distintas semillas. El nivel de confianza mide qué tan de acuerdo están esos 10 modelos entre sí para un aviso en particular:\n",
+                "\n",
+                "- **Alta**: los 10 modelos predicen costos muy parecidos.\n",
+                "- **Media**: hay algo de desacuerdo entre los modelos.\n",
+                "- **Baja**: los 10 modelos predicen costos bastante distintos — señal de una combinación de características poco común en los datos de entrenamiento.\n",
+                "\n",
+                "Confianza alta no garantiza que la predicción sea correcta — solo dice que el modelo es consistente consigo mismo para ese aviso.\n",
+                "\n",
+                "## Qué tan preciso es\n",
+                "\n",
+                "Medido sobre el conjunto de test del modelo vigente:\n",
+                "\n",
+                "| Métrica | Valor |\n",
+                "|---|---|\n",
+                "| Error promedio (MAE) | ≈ $42.500 |\n",
+                "| Error porcentual (MAPE) | ≈ 6,7% |\n",
+                "| R² | ≈ 0,88 |\n",
+                "\n",
+                "Como referencia, usar siempre el costo promedio del mercado sin distinguir entre avisos da un error de ≈ $150.800; usar el costo/m² del sector sin ajustar nada más da ≈ $86.500. Este modelo reduce el error a menos de un tercio de esa segunda referencia.\n",
+                "\n",
+                "## ⚠️ Usar con precaución\n",
+                "\n",
+                "Este buscador se hizo **solo a modo de prueba y aprendizaje**, no es un servicio de tasación ni una recomendación de inversión.\n",
+                "\n",
+                "- El modelo no captura variables como estado de conservación interno, luminosidad, ruido, calidad de terminaciones, vista, o condiciones del contrato.\n",
+                "- Los datos vienen de avisos publicados — pueden tener errores de tipeo, precios o gastos comunes desactualizados.\n",
+                "- El error típico del modelo (~6,7%, más alto en tramos de costo poco frecuentes) significa que puede fallar, incluso en avisos marcados con confianza alta.\n",
+                "- Revisá siempre la publicación original antes de sacar conclusiones sobre un aviso puntual."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 24
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "page_corridas",
+      "displayName": "⚙️ Corridas",
+      "layout": [
+        {
+          "widget": {
+            "name": "corr_c_estado",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_corridas_resumen",
+                  "fields": [
+                    {
+                      "name": "ultimo_estado",
+                      "expression": "`ultimo_estado`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "contentAlignment": "left",
+                "title": {
+                  "value": "Última corrida",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "ultimo_estado",
+                  "rowNumber": 0,
+                  "style": {
+                    "fontSize": 24
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "corr_c_hace",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_corridas_resumen",
+                  "fields": [
+                    {
+                      "name": "hace_minutos",
+                      "expression": "`hace_minutos`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "Hace (min)"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "hace_minutos",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "corr_c_24h",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_corridas_resumen",
+                  "fields": [
+                    {
+                      "name": "corridas_24h",
+                      "expression": "`corridas_24h`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "Corridas 24 h"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "corridas_24h",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "corr_c_fail",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_corridas_resumen",
+                  "fields": [
+                    {
+                      "name": "fallidas_7d",
+                      "expression": "`fallidas_7d`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "Fallidas 7 d"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "fallidas_7d",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "corr_c_nuevos",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_corridas_resumen",
+                  "fields": [
+                    {
+                      "name": "avisos_nuevos_hoy",
+                      "expression": "`avisos_nuevos_hoy`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "Avisos nuevos hoy"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "avisos_nuevos_hoy",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "corr_c_cambios",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_corridas_resumen",
+                  "fields": [
+                    {
+                      "name": "cambios_estado_hoy",
+                      "expression": "`cambios_estado_hoy`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "Cambios estado hoy"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "cambios_estado_hoy",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 10,
+            "y": 0,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "corr_f_estado",
+            "queries": [
+              {
+                "name": "corr_f_estado_q",
+                "query": {
+                  "datasetName": "ds_corridas",
+                  "fields": [
+                    {
+                      "name": "estado",
+                      "expression": "`estado`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "estado",
+                    "displayName": "Estado",
+                    "queryName": "corr_f_estado_q"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Estado"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "corr_f_trigger",
+            "queries": [
+              {
+                "name": "corr_f_trigger_q",
+                "query": {
+                  "datasetName": "ds_corridas",
+                  "fields": [
+                    {
+                      "name": "trigger_type",
+                      "expression": "`trigger_type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "trigger_type",
+                    "displayName": "Disparo",
+                    "queryName": "corr_f_trigger_q"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Disparo"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 3,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "corr_tabla",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_corridas",
+                  "fields": [
+                    {
+                      "name": "inicio",
+                      "expression": "`inicio`"
+                    },
+                    {
+                      "name": "duracion_min",
+                      "expression": "`duracion_min`"
+                    },
+                    {
+                      "name": "estado",
+                      "expression": "`estado`"
+                    },
+                    {
+                      "name": "trigger_type",
+                      "expression": "`trigger_type`"
+                    },
+                    {
+                      "name": "avisos_nuevos",
+                      "expression": "`avisos_nuevos`"
+                    },
+                    {
+                      "name": "avisos_rechequeados",
+                      "expression": "`avisos_rechequeados`"
+                    },
+                    {
+                      "name": "cambios_estado",
+                      "expression": "`cambios_estado`"
+                    },
+                    {
+                      "name": "predicciones_nuevas",
+                      "expression": "`predicciones_nuevas`"
+                    },
+                    {
+                      "name": "tareas_no_ok",
+                      "expression": "`tareas_no_ok`"
+                    }
+                  ],
+                  "disaggregated": true,
+                  "orders": [
+                    {
+                      "direction": "DESC",
+                      "expression": "`inicio`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Historial de corridas",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "inicio",
+                    "displayName": "Inicio"
+                  },
+                  {
+                    "fieldName": "duracion_min",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "contentAlignment": "center",
+                    "displayName": "Duración (min)"
+                  },
+                  {
+                    "fieldName": "estado",
+                    "displayName": "Estado"
+                  },
+                  {
+                    "fieldName": "trigger_type",
+                    "displayName": "Disparo"
+                  },
+                  {
+                    "fieldName": "avisos_nuevos",
+                    "displayName": "Avisos nuevos"
+                  },
+                  {
+                    "fieldName": "avisos_rechequeados",
+                    "displayName": "Rechequeados"
+                  },
+                  {
+                    "fieldName": "cambios_estado",
+                    "displayName": "Cambios estado"
+                  },
+                  {
+                    "fieldName": "predicciones_nuevas",
+                    "displayName": "Predicciones"
+                  },
+                  {
+                    "fieldName": "tareas_no_ok",
+                    "displayName": "Tareas no OK"
+                  }
+                ],
+                "rowOrder": [
+                  {
+                    "by": "column-reversed",
+                    "field": {
+                      "index": 0
+                    }
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 7,
+            "height": 11
+          }
+        },
+        {
+          "widget": {
+            "name": "corr_ch_dia",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_corridas",
+                  "fields": [
+                    {
+                      "name": "dia",
+                      "expression": "DATE(`inicio`)"
+                    },
+                    {
+                      "name": "corridas",
+                      "expression": "COUNT(`run_id`)"
+                    },
+                    {
+                      "name": "estado",
+                      "expression": "`estado`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "frame": {
+                "showTitle": true,
+                "title": "Corridas por día"
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "dia",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Día"
+                },
+                "y": {
+                  "fieldName": "corridas",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Corridas"
+                },
+                "color": {
+                  "fieldName": "estado",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Estado"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 7,
+            "y": 5,
+            "width": 5,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "corr_ch_dur",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_corridas",
+                  "fields": [
+                    {
+                      "name": "inicio",
+                      "expression": "`inicio`"
+                    },
+                    {
+                      "name": "duracion_min",
+                      "expression": "`duracion_min`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Duración por corrida (min)",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "inicio",
+                  "axis": {
+                    "labelAngle": 45
+                  },
+                  "displayName": "Inicio",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "duracion_min",
+                  "displayName": "Duración (min)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 7,
+            "y": 11,
+            "width": 5,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "corr_ch_tarea",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_corridas_tareas",
+                  "fields": [
+                    {
+                      "name": "task_key",
+                      "expression": "`task_key`"
+                    },
+                    {
+                      "name": "avg(duracion_seg)",
+                      "expression": "AVG(`duracion_seg`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Duración media por tarea (s)",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "task_key",
+                  "axis": {
+                    "labelAngle": 0,
+                    "hideLabels": false
+                  },
+                  "displayName": "Tarea",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "natural-order"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "avg(duracion_seg)",
+                  "displayName": "Duración media (s)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "corr_ch_nuevos",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_corridas",
+                  "fields": [
+                    {
+                      "name": "inicio",
+                      "expression": "`inicio`"
+                    },
+                    {
+                      "name": "sum(avisos_nuevos)",
+                      "expression": "SUM(`avisos_nuevos`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Avisos nuevos por corrida",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "inicio",
+                  "axis": {
+                    "labelAngle": 45
+                  },
+                  "displayName": "Inicio",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(avisos_nuevos)",
+                  "axis": {
+                    "labelAngle": 0
+                  },
+                  "displayName": "Avisos nuevos",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 16,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ]
+}

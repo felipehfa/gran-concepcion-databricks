@@ -25,11 +25,21 @@
 
 # COMMAND ----------
 
+import random
+import time
 from datetime import date
 
 import pandas as pd
 import requests
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
+
+# mindicador.cl a veces tarda en responder; sin esto, un timeout ahí tumbaba
+# toda la corrida (y con ella las 7 tareas que dependen de este notebook en
+# el Job programado, ver 03_oro/11 y el resto de la cadena).
+TIMEOUT_REQUEST_SEG = 30
+REINTENTOS_TRAS_ERROR = 3
+BACKOFF_REINTENTO_MIN = 3.0
+BACKOFF_REINTENTO_MAX = 6.0
 
 # COMMAND ----------
 
@@ -89,23 +99,67 @@ except Exception:
 fechas_faltantes = fechas_necesarias - fechas_existentes
 print(f"{len(fechas_faltantes)} fechas todavía no cacheadas, se consultarán a la API.")
 
+# Último valor de UF ya cacheado — respaldo para cuando mindicador.cl no se
+# pueda alcanzar en absoluto (ver sección 4), no para fines de semana/feriados
+# normales (esos siguen sin cachearse, se reintentan solos en la próxima
+# corrida).
+try:
+    ultimo_valor_row = spark.sql("""
+        SELECT valor_uf_clp, fecha_valor
+        FROM gran_concepcion.02_plata.valores_pesos
+        ORDER BY fecha_valor DESC
+        LIMIT 1
+    """).collect()
+    ultimo_valor_uf_cacheado = ultimo_valor_row[0]["valor_uf_clp"] if ultimo_valor_row else None
+    ultima_fecha_cacheada = ultimo_valor_row[0]["fecha_valor"] if ultimo_valor_row else None
+except Exception:
+    ultimo_valor_uf_cacheado = None
+    ultima_fecha_cacheada = None
+
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ### 4. Consultar mindicador.cl por año
 # MAGIC Una sola llamada por año trae la serie completa — mucho más eficiente que
-# MAGIC una llamada por fecha individual.
+# MAGIC una llamada por fecha individual. Reintenta con backoff ante timeout o
+# MAGIC error de red (`TIMEOUT_REQUEST_SEG`/`REINTENTOS_TRAS_ERROR`/
+# MAGIC `BACKOFF_REINTENTO_MIN`/`MAX`, sección 0) — mismo patrón que ya usa el
+# MAGIC scraper de Bronce.
+# MAGIC
+# MAGIC Si los reintentos se agotan para un año completo (mindicador.cl
+# MAGIC inalcanzable, no solo un timeout aislado), el notebook YA NO se cae:
+# MAGIC ese año queda marcado en `anios_no_disponibles`, y en la sección 5 las
+# MAGIC fechas de ese año usan como respaldo el último valor de UF ya cacheado
+# MAGIC (`ultimo_valor_uf_cacheado`, sección 3) en vez de quedar sin cachear. La
+# MAGIC UF varía muy poco día a día, así que un respaldo de este tipo introduce
+# MAGIC un error mínimo — muy preferible a tumbar toda la corrida (y con ella
+# MAGIC las 7 tareas que dependen de este notebook en el Job programado).
 
 # COMMAND ----------
 
 anios_necesarios = {fecha[:4] for fecha in fechas_faltantes}
 valores_uf_por_fecha = {}
+anios_no_disponibles = set()
 
 for anio in sorted(anios_necesarios):
     print(f"Consultando UF del año {anio}...")
-    resp = requests.get(f"https://mindicador.cl/api/uf/{anio}", timeout=15)
-    resp.raise_for_status()
-    data = resp.json()
+    for intento in range(1, REINTENTOS_TRAS_ERROR + 1):
+        try:
+            resp = requests.get(f"https://mindicador.cl/api/uf/{anio}", timeout=TIMEOUT_REQUEST_SEG)
+            resp.raise_for_status()
+            data = resp.json()
+            break
+        except requests.exceptions.RequestException as e:
+            if intento == REINTENTOS_TRAS_ERROR:
+                print(f"No se pudo consultar mindicador.cl para el año {anio} tras "
+                      f"{REINTENTOS_TRAS_ERROR} intentos ({e}). Las fechas de ese año "
+                      f"van a usar el último valor de UF cacheado como respaldo.")
+                anios_no_disponibles.add(anio)
+                data = {"serie": []}
+                break
+            espera = random.uniform(BACKOFF_REINTENTO_MIN, BACKOFF_REINTENTO_MAX)
+            print(f"Intento {intento} de {REINTENTOS_TRAS_ERROR} falló ({e}), reintentando en {espera:.1f}s...")
+            time.sleep(espera)
 
     for item in data.get("serie", []):
         fecha_str = item["fecha"][:10]
@@ -118,7 +172,11 @@ print(f"{len(valores_uf_por_fecha)} valores de UF obtenidos en total (todos los 
 # MAGIC %md
 # MAGIC ### 5. Armar el DataFrame solo con las fechas que faltaban
 # MAGIC El dólar se agrega como valor fijo aproximado en cada fila, junto a la UF
-# MAGIC consultada.
+# MAGIC consultada (o al respaldo, si el año de esa fecha no se pudo consultar —
+# MAGIC ver sección 4). Una fecha de un año que SÍ se pudo consultar pero que
+# MAGIC igual no aparece en la serie (fin de semana/feriado real, sin
+# MAGIC publicación oficial) sigue sin cachearse — el respaldo es solo para la
+# MAGIC falla de conexión, no reemplaza ese caso.
 
 # COMMAND ----------
 
@@ -126,12 +184,17 @@ VALOR_DOLAR_CLP = 925.0   # fijo, aproximado - no varía lo suficiente para just
 
 registros_nuevos = []
 fechas_no_encontradas = []
+fechas_con_respaldo = []
 
 for fecha in sorted(fechas_faltantes):
     valor = valores_uf_por_fecha.get(fecha)
     if valor is None:
-        fechas_no_encontradas.append(fecha)
-        continue
+        if fecha[:4] in anios_no_disponibles and ultimo_valor_uf_cacheado is not None:
+            valor = ultimo_valor_uf_cacheado
+            fechas_con_respaldo.append(fecha)
+        else:
+            fechas_no_encontradas.append(fecha)
+            continue
     registros_nuevos.append({
         "fecha_valor": fecha,
         "valor_uf_clp": valor,
@@ -143,6 +206,12 @@ if fechas_no_encontradas:
     print(f"{len(fechas_no_encontradas)} fechas no encontradas en la API "
           f"(posiblemente fines de semana/feriados sin publicación oficial): "
           f"{fechas_no_encontradas[:10]}...")
+
+if fechas_con_respaldo:
+    print(f"{len(fechas_con_respaldo)} fechas usaron el último valor de UF cacheado "
+          f"como respaldo ({ultimo_valor_uf_cacheado}, de {ultima_fecha_cacheada}) "
+          f"porque mindicador.cl no se pudo alcanzar para ese año: "
+          f"{fechas_con_respaldo[:10]}...")
 
 df_uf_nuevos = pd.DataFrame(registros_nuevos)
 print(f"{len(df_uf_nuevos)} filas nuevas para insertar")
