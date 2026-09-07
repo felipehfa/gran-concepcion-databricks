@@ -4,7 +4,7 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # Vista -- gran_concepcion.03_oro.vw_corridas
+# MAGIC # Vista -- gran_concepcion.04_capa_semantica.vw_corridas
 # MAGIC
 # MAGIC **Creada por:** 03_oro/12_snapshot_historial_tablas_oro_python.py
 # MAGIC (CREATE OR REPLACE VIEW inline). Referencia de solo lectura, idempotente,
@@ -28,7 +28,7 @@
 JOB_ID = "1060179417531534"
 
 spark.sql(f"""
-    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_corridas AS
+    CREATE OR REPLACE VIEW gran_concepcion.04_capa_semantica.vw_corridas AS
     WITH runs AS (
         SELECT r.run_id,
             MIN(r.period_start_time) AS inicio,

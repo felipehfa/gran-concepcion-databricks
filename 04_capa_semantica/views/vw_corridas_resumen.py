@@ -4,7 +4,7 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # Vista -- gran_concepcion.03_oro.vw_corridas_resumen
+# MAGIC # Vista -- gran_concepcion.04_capa_semantica.vw_corridas_resumen
 # MAGIC
 # MAGIC **Creada por:** 03_oro/12_snapshot_historial_tablas_oro_python.py
 # MAGIC (CREATE OR REPLACE VIEW inline). Referencia de solo lectura, idempotente,
@@ -17,7 +17,7 @@
 # COMMAND ----------
 
 spark.sql("""
-    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_corridas_resumen AS
+    CREATE OR REPLACE VIEW gran_concepcion.04_capa_semantica.vw_corridas_resumen AS
     SELECT
         MAX_BY(estado, inicio) AS ultimo_estado,
         MAX(inicio)            AS ultima_corrida,
@@ -27,5 +27,5 @@ spark.sql("""
         SUM(IF(CAST(inicio AS DATE) = current_date(), avisos_nuevos, 0))  AS avisos_nuevos_hoy,
         SUM(IF(CAST(inicio AS DATE) = current_date(), cambios_estado, 0)) AS cambios_estado_hoy,
         ROUND(AVG(duracion_min), 1) AS duracion_media_min
-    FROM gran_concepcion.03_oro.vw_corridas
+    FROM gran_concepcion.04_capa_semantica.vw_corridas
 """)

@@ -4,7 +4,8 @@
 Pipeline de Databricks que replica, capa por capa, el proyecto de scraping y
 modelo de precios de arriendo del Gran Concepción: scraping de avisos,
 limpieza, ingeniería de variables y predicción de precio, siguiendo la
-arquitectura medallón de 3 capas (bronce, plata, oro).
+arquitectura medallón de 3 capas (bronce, plata, oro), más una capa semántica
+de vistas de consumo sobre Oro.
 
 ## Índice
 - [Cómo cumple el estándar medallón](#cómo-cumple-el-estándar-medallón)
@@ -27,8 +28,8 @@ convención de nombres):
 | **Dedup e incrementalidad** | `NOT EXISTS`/`spark.catalog.tableExists` para no reprocesar filas ya existentes, y `ROW_NUMBER() OVER (PARTITION BY id_aviso ...)` como red de seguridad ante corridas repetidas (`03_oro/06_features_oro_sql.py`). |
 | **Particionado por capa** (fecha de ingesta en Bronce, fecha de negocio en Silver/Gold) | `PARTITIONED BY` en las tablas que crecen con cada corrida (`avisos`, `avisos_detalle`, `avisos_limpios`, `avisos_features`, `predicciones`). Las tablas de referencia estática (polígonos, población de referencia) no se particionan — son chicas y se sobreescriben completas. |
 | **Compactación tras cada MERGE incremental** | Cada notebook automático termina con una celda `OPTIMIZE ... ZORDER BY (id_aviso)`. |
-| **Una sola capa Gold**, sin capas extra fuera del modelo de 3 | La predicción de precio vive dentro de `03_oro/` (no en un esquema `04_prediccion` aparte): Oro es el layer de negocio completo — features + predicción/etiqueta lista para consumo. |
-| **Convención de nombres** | `gran_concepcion.<capa>.<entidad>` (`01_bronce.avisos`, `02_plata.avisos_limpios`, `03_oro.stg_avisos_features`, `03_oro.fact_aviso`); columnas de metadata siempre con prefijo `_`. En Oro, `stg_*` = insumo interno de feature engineering, `dim_*`/`fact_*` = modelo dimensional para Power BI. |
+| **Una sola capa Gold**, sin capas extra fuera del modelo de 3 | La predicción de precio vive dentro de `03_oro/` (no en un esquema `04_prediccion` aparte): Oro es el layer de negocio completo — features + predicción/etiqueta lista para consumo. La capa semántica (`04_capa_semantica`, vistas `vw_*`) tampoco es una 4ª capa medallón: no tiene tablas propias ni lógica de negocio nueva, es la capa de consumo estándar (Kimball) entre Gold y el dashboard. |
+| **Convención de nombres** | `gran_concepcion.<capa>.<entidad>` (`01_bronce.avisos`, `02_plata.avisos_limpios`, `03_oro.stg_avisos_features`, `03_oro.fact_aviso`); columnas de metadata siempre con prefijo `_`. En Oro, `stg_*` = insumo interno de feature engineering, `dim_*`/`fact_*` = modelo dimensional Kimball. `04_capa_semantica.vw_*` = vistas de consumo sobre ese modelo, que lee el dashboard AI/BI "Buscador de Arriendos - Gran Concepcion" (no Power BI). |
 
 Ver `CLAUDE.md` para el detalle de cada patrón (con secciones de código
 citadas) y para los tradeoffs que se evaluaron antes de implementarlos.
@@ -44,9 +45,22 @@ citadas) y para los tradeoffs que se evaluaron antes de implementarlos.
   contra la población de referencia congelada con la que se entrenó el
   modelo vigente), resolución de vulnerabilidad socioterritorial,
   actualización periódica del estado de publicación de los avisos
-  (activo/pausado/finalizado/no_disponible), y la predicción de precio
-  (ensamble LightGBM) con su calibración de oportunidad/confianza — Oro es
-  el layer de negocio: features + predicción, lista para consumo.
+  (activo/pausado/finalizado/no_disponible), la predicción de precio
+  (ensamble LightGBM) con su calibración de oportunidad/confianza, y el
+  snapshot de historial de tablas para observabilidad — Oro es el layer de
+  negocio: features + predicción, lista para consumo.
+- `04_capa_semantica/`: vistas de solo lectura (`vw_buscador_*`,
+  `vw_corridas*`) sobre las tablas gobernadas de Oro, en su propio schema
+  Unity Catalog — separado de `03_oro` a propósito, para no mezclar tablas
+  gobernadas con vistas de consumo. Las crean inline
+  `03_oro/11_modelo_dimensional_oro_sql.py` y
+  `03_oro/12_snapshot_historial_tablas_oro_python.py`; los `.py` en
+  `04_capa_semantica/views/` son copias de referencia standalone, no se
+  ejecutan como parte del pipeline.
+- `04_visualización/`: export del dashboard AI/BI "Buscador de Arriendos -
+  Gran Concepcion" (`.lvdash.json`) — la capa de consumo real del proyecto
+  (no Power BI). Sus datasets son `SELECT * FROM` las vistas de
+  `04_capa_semantica`.
 - `subir_a_volumes/`: carpeta local de conveniencia (no versionada) con los
   archivos ya listos para subir a los Volumes — ver más abajo.
 
@@ -66,10 +80,24 @@ citadas) y para los tradeoffs que se evaluaron antes de implementarlos.
 | 10 | `03_oro/09_actualizacion_estado_avisos_oro_python.py` | Python | Automático |
 | 11 | `03_oro/10_prediccion_oro_python.py` | Python | Manual, una vez (o al reentrenar el modelo) |
 | 12 | `03_oro/11_modelo_dimensional_oro_sql.py` | SQL | Automático |
+| 13 | `03_oro/12_snapshot_historial_tablas_oro_python.py` | Python | Automático |
 
-El notebook 12 arma el modelo dimensional Kimball (`dim_*`/`fact_aviso`) que
-consume Power BI, a partir de las tablas de staging (`stg_*`) que dejan 06,
-07, 09 y 10 — no toca capas anteriores directo.
+El notebook 12 arma el modelo dimensional Kimball (`dim_*`/`fact_aviso`) y las
+vistas de consumo del buscador (`04_capa_semantica.vw_buscador_*`), a partir
+de las tablas de staging (`stg_*`) que dejan 06, 07, 09 y 10 — no toca capas
+anteriores directo. El notebook 13 registra el historial de commits Delta de
+las 3 capas (`03_oro.historial_tablas`) y arma las vistas de observabilidad
+de corridas (`04_capa_semantica.vw_corridas*`) que alimentan la página
+"⚙️ Corridas" del dashboard. Ambos notebooks alimentan el dashboard AI/BI
+"Buscador de Arriendos - Gran Concepcion" (`04_visualización/`), la capa de
+consumo real del proyecto — no Power BI, pese a lo que pueda sugerir el resto
+de este documento.
+
+En producción, este pipeline corre automatizado como el Job de Databricks
+`gran_concepcion_pipeline` (definido en la UI del workspace, no en
+`databricks.yml`), programado cada 6 horas (`0 0 0,6,12,18 * * ?`,
+América/Santiago). La tabla de arriba y la sección "Uso" describen cómo
+levantar el proyecto desde cero a mano.
 
 Todos los notebooks son idempotentes: si se borran las tablas del catálogo
 y se vuelve a correr todo en este orden, las tablas se recrean y se
@@ -99,7 +127,15 @@ CREATE VOLUME IF NOT EXISTS gran_concepcion.02_plata.modelos;
 CREATE SCHEMA IF NOT EXISTS gran_concepcion.03_oro;
 CREATE VOLUME IF NOT EXISTS gran_concepcion.03_oro.referencia_modelo;
 CREATE VOLUME IF NOT EXISTS gran_concepcion.03_oro.modelo_prediccion;
+
+CREATE SCHEMA IF NOT EXISTS gran_concepcion.04_capa_semantica;
 ```
+
+> `04_capa_semantica` no lleva Volumes — es solo las vistas de consumo
+> (`vw_buscador_*`, `vw_corridas*`) que leen de `03_oro`. La crean también,
+> de forma idempotente, los notebooks `03_oro/11_modelo_dimensional_oro_sql.py`
+> y `03_oro/12_snapshot_historial_tablas_oro_python.py` antes de sus
+> `CREATE OR REPLACE VIEW`.
 
 | Volume | Ruta completa | Contenido (en `subir_a_volumes/...`) | Lo usa |
 |---|---|---|---|

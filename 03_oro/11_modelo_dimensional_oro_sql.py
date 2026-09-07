@@ -528,9 +528,11 @@ spark.sql("OPTIMIZE gran_concepcion.03_oro.fact_aviso ZORDER BY (id_aviso)")
 # MAGIC vistas que consume el dashboard AI/BI "Buscador de Arriendos - Gran
 # MAGIC Concepcion". El dashboard lee `SELECT * FROM` estas vistas en vez de
 # MAGIC repetir los joins y la lógica de negocio en el JSON de cada dataset —
-# MAGIC así la definición queda versionada acá. Definición standalone de cada
-# MAGIC una (para recrear en un workspace nuevo o inspeccionar sin abrir este
-# MAGIC notebook) en `03_oro/views/vw_buscador_*.py`.
+# MAGIC así la definición queda versionada acá. Viven en `gran_concepcion.04_capa_semantica`,
+# MAGIC un schema propio para la capa semántica (separado de `03_oro`, que solo
+# MAGIC tiene las tablas gobernadas — `dim_*`/`fact_*`/`stg_*`). Definición
+# MAGIC standalone de cada una (para recrear en un workspace nuevo o inspeccionar
+# MAGIC sin abrir este notebook) en `04_capa_semantica/views/vw_buscador_*.py`.
 # MAGIC
 # MAGIC - `vw_buscador_avisos` — 1 fila por aviso publicado con predicción vigente.
 # MAGIC - `vw_buscador_historial_diario` — serie diaria de avisos activos / entran / salen.
@@ -538,8 +540,10 @@ spark.sql("OPTIMIZE gran_concepcion.03_oro.fact_aviso ZORDER BY (id_aviso)")
 
 # COMMAND ----------
 
+spark.sql("CREATE SCHEMA IF NOT EXISTS gran_concepcion.04_capa_semantica")
+
 spark.sql("""
-    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_buscador_avisos AS
+    CREATE OR REPLACE VIEW gran_concepcion.04_capa_semantica.vw_buscador_avisos AS
     SELECT
         f.id_aviso,
         s.titulo,
@@ -594,7 +598,7 @@ print("vw_buscador_avisos creada/reemplazada.")
 # COMMAND ----------
 
 spark.sql("""
-    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_buscador_historial_diario AS
+    CREATE OR REPLACE VIEW gran_concepcion.04_capa_semantica.vw_buscador_historial_diario AS
     WITH fechas AS (
       SELECT explode(sequence(
         (SELECT DATE(MIN(valid_from)) FROM gran_concepcion.03_oro.dim_estado_aviso_scd2),
@@ -652,7 +656,7 @@ print("vw_buscador_historial_diario creada/reemplazada.")
 # COMMAND ----------
 
 spark.sql("""
-    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_buscador_valor_m2_diario AS
+    CREATE OR REPLACE VIEW gran_concepcion.04_capa_semantica.vw_buscador_valor_m2_diario AS
     WITH fechas AS (
       SELECT explode(sequence(
         (SELECT DATE(MIN(valid_from)) FROM gran_concepcion.03_oro.dim_estado_aviso_scd2),

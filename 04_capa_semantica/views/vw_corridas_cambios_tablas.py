@@ -4,7 +4,7 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # Vista -- gran_concepcion.03_oro.vw_corridas_cambios_tablas
+# MAGIC # Vista -- gran_concepcion.04_capa_semantica.vw_corridas_cambios_tablas
 # MAGIC
 # MAGIC **Creada por:** 03_oro/12_snapshot_historial_tablas_oro_python.py
 # MAGIC (CREATE OR REPLACE VIEW inline). Referencia de solo lectura, idempotente,
@@ -20,11 +20,11 @@
 # COMMAND ----------
 
 spark.sql("""
-    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_corridas_cambios_tablas AS
+    CREATE OR REPLACE VIEW gran_concepcion.04_capa_semantica.vw_corridas_cambios_tablas AS
     WITH run_win AS (
         SELECT run_id, inicio,
             LEAD(inicio) OVER (ORDER BY inicio) AS inicio_siguiente
-        FROM (SELECT run_id, MIN(inicio) AS inicio FROM gran_concepcion.03_oro.vw_corridas_tareas GROUP BY run_id)
+        FROM (SELECT run_id, MIN(inicio) AS inicio FROM gran_concepcion.04_capa_semantica.vw_corridas_tareas GROUP BY run_id)
     )
     SELECT w.run_id, h.capa, h.tabla,
         element_at(split(h.tabla, '[.]'), -1) AS tabla_corta,

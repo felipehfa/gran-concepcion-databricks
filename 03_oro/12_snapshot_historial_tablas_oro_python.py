@@ -74,14 +74,19 @@ print("Tabla historial_tablas verificada/creada.")
 # MAGIC (id `1060179417531534`) y las cruzan por ventana de tiempo contra los
 # MAGIC timestamps por fila de Oro para reconstruir avisos nuevos / rechequeos /
 # MAGIC cambios de estado / predicciones **por corrida** (sin instrumentar los
-# MAGIC notebooks). Definición standalone en `03_oro/views/vw_corridas*.py`.
+# MAGIC notebooks). Viven en `gran_concepcion.04_capa_semantica` (mismo schema
+# MAGIC que las vistas del buscador — ver nb 11 sección 10), aunque leen tablas
+# MAGIC de `03_oro` como `historial_tablas` y `dim_estado_aviso_scd2`. Definición
+# MAGIC standalone en `04_capa_semantica/views/vw_corridas*.py`.
 
 # COMMAND ----------
 
 JOB_ID = "1060179417531534"
 
+spark.sql("CREATE SCHEMA IF NOT EXISTS gran_concepcion.04_capa_semantica")
+
 spark.sql(f"""
-    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_corridas_tareas AS
+    CREATE OR REPLACE VIEW gran_concepcion.04_capa_semantica.vw_corridas_tareas AS
     SELECT
         t.job_run_id AS run_id,
         t.task_key,
@@ -108,7 +113,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_corridas AS
+    CREATE OR REPLACE VIEW gran_concepcion.04_capa_semantica.vw_corridas AS
     WITH runs AS (
         SELECT r.run_id,
             MIN(r.period_start_time) AS inicio,
@@ -197,11 +202,11 @@ spark.sql(f"""
 """)
 
 spark.sql("""
-    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_corridas_cambios_tablas AS
+    CREATE OR REPLACE VIEW gran_concepcion.04_capa_semantica.vw_corridas_cambios_tablas AS
     WITH run_win AS (
         SELECT run_id, inicio,
             LEAD(inicio) OVER (ORDER BY inicio) AS inicio_siguiente
-        FROM (SELECT run_id, MIN(inicio) AS inicio FROM gran_concepcion.03_oro.vw_corridas_tareas GROUP BY run_id)
+        FROM (SELECT run_id, MIN(inicio) AS inicio FROM gran_concepcion.04_capa_semantica.vw_corridas_tareas GROUP BY run_id)
     )
     SELECT w.run_id, h.capa, h.tabla,
         element_at(split(h.tabla, '[.]'), -1) AS tabla_corta,
@@ -223,7 +228,7 @@ spark.sql("""
 """)
 
 spark.sql("""
-    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_corridas_resumen AS
+    CREATE OR REPLACE VIEW gran_concepcion.04_capa_semantica.vw_corridas_resumen AS
     SELECT
         MAX_BY(estado, inicio) AS ultimo_estado,
         MAX(inicio)            AS ultima_corrida,
@@ -233,7 +238,7 @@ spark.sql("""
         SUM(IF(CAST(inicio AS DATE) = current_date(), avisos_nuevos, 0))  AS avisos_nuevos_hoy,
         SUM(IF(CAST(inicio AS DATE) = current_date(), cambios_estado, 0)) AS cambios_estado_hoy,
         ROUND(AVG(duracion_min), 1) AS duracion_media_min
-    FROM gran_concepcion.03_oro.vw_corridas
+    FROM gran_concepcion.04_capa_semantica.vw_corridas
 """)
 
 print("Vistas vw_corridas* creadas/reemplazadas.")

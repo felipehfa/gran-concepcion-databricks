@@ -4,7 +4,7 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # Vista — `gran_concepcion.03_oro.vw_buscador_valor_m2_diario`
+# MAGIC # Vista — `gran_concepcion.04_capa_semantica.vw_buscador_valor_m2_diario`
 # MAGIC
 # MAGIC **Creada por:** `03_oro/11_modelo_dimensional_oro_sql.py` (sección 10) —
 # MAGIC referencia de solo lectura, el notebook fuente la crea inline con
@@ -24,7 +24,7 @@
 # COMMAND ----------
 
 spark.sql("""
-    CREATE OR REPLACE VIEW gran_concepcion.03_oro.vw_buscador_valor_m2_diario AS
+    CREATE OR REPLACE VIEW gran_concepcion.04_capa_semantica.vw_buscador_valor_m2_diario AS
     WITH fechas AS (
       SELECT explode(sequence(
         (SELECT DATE(MIN(valid_from)) FROM gran_concepcion.03_oro.dim_estado_aviso_scd2),

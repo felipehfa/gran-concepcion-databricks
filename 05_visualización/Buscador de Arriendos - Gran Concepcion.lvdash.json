@@ -4,42 +4,42 @@
       "name": "ds_buscador",
       "displayName": "Avisos (buscador)",
       "queryLines": [
-        "SELECT * FROM gran_concepcion.03_oro.vw_buscador_avisos"
+        "SELECT * FROM gran_concepcion.04_capa_semantica.vw_buscador_avisos"
       ]
     },
     {
       "name": "ds_historial_diario",
       "displayName": "Historial diario de estado",
       "queryLines": [
-        "SELECT * FROM gran_concepcion.03_oro.vw_buscador_historial_diario"
+        "SELECT * FROM gran_concepcion.04_capa_semantica.vw_buscador_historial_diario"
       ]
     },
     {
       "name": "ds_valor_m2",
       "displayName": "Valor por m2 diario",
       "queryLines": [
-        "SELECT * FROM gran_concepcion.03_oro.vw_buscador_valor_m2_diario"
+        "SELECT * FROM gran_concepcion.04_capa_semantica.vw_buscador_valor_m2_diario"
       ]
     },
     {
       "name": "ds_corridas",
       "displayName": "ds_corridas",
       "queryLines": [
-        "SELECT * FROM gran_concepcion.03_oro.vw_corridas"
+        "SELECT * FROM gran_concepcion.04_capa_semantica.vw_corridas"
       ]
     },
     {
       "name": "ds_corridas_tareas",
       "displayName": "ds_corridas_tareas",
       "queryLines": [
-        "SELECT * FROM gran_concepcion.03_oro.vw_corridas_tareas"
+        "SELECT * FROM gran_concepcion.04_capa_semantica.vw_corridas_tareas"
       ]
     },
     {
       "name": "ds_corridas_resumen",
       "displayName": "ds_corridas_resumen",
       "queryLines": [
-        "SELECT * FROM gran_concepcion.03_oro.vw_corridas_resumen"
+        "SELECT * FROM gran_concepcion.04_capa_semantica.vw_corridas_resumen"
       ]
     }
   ],
@@ -48,6 +48,22 @@
       "name": "page_buscador",
       "displayName": "🏠 Buscador",
       "layout": [
+        {
+          "widget": {
+            "name": "titulo_buscador",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"text-align:center;display:block;\"><span style=\"font-size: 36px;line-height: 1.5;\">Buscador de oportunidades de arriendo Gran Concepción</span></span>"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
         {
           "widget": {
             "name": "filter_comuna",
@@ -86,7 +102,7 @@
           },
           "position": {
             "x": 0,
-            "y": 0,
+            "y": 2,
             "width": 3,
             "height": 2
           }
@@ -129,7 +145,7 @@
           },
           "position": {
             "x": 3,
-            "y": 0,
+            "y": 2,
             "width": 3,
             "height": 2
           }
@@ -139,13 +155,17 @@
             "name": "filter_confianza",
             "queries": [
               {
-                "name": "filter_confianza_q",
+                "name": "dashboards/01f1a009f42a13b3bf3ab587f0d37685/datasets/01f1a404c9021b7c8e09f08c568ba656_nivel_confianza",
                 "query": {
                   "datasetName": "ds_buscador",
                   "fields": [
                     {
                       "name": "nivel_confianza",
                       "expression": "`nivel_confianza`"
+                    },
+                    {
+                      "name": "nivel_confianza_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
                     }
                   ],
                   "disaggregated": false
@@ -154,25 +174,27 @@
             ],
             "spec": {
               "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Nivel de confianza",
+                  "fields": []
+                }
+              },
               "widgetType": "filter-multi-select",
               "encodings": {
                 "fields": [
                   {
                     "fieldName": "nivel_confianza",
-                    "displayName": "Confianza",
-                    "queryName": "filter_confianza_q"
+                    "queryName": "dashboards/01f1a009f42a13b3bf3ab587f0d37685/datasets/01f1a404c9021b7c8e09f08c568ba656_nivel_confianza"
                   }
                 ]
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "Nivel de confianza"
               }
             }
           },
           "position": {
             "x": 6,
-            "y": 0,
+            "y": 2,
             "width": 3,
             "height": 2
           }
@@ -233,7 +255,7 @@
           },
           "position": {
             "x": 9,
-            "y": 0,
+            "y": 2,
             "width": 3,
             "height": 2
           }
@@ -279,7 +301,7 @@
           },
           "position": {
             "x": 0,
-            "y": 2,
+            "y": 4,
             "width": 3,
             "height": 2
           }
@@ -328,7 +350,7 @@
           },
           "position": {
             "x": 3,
-            "y": 2,
+            "y": 4,
             "width": 3,
             "height": 2
           }
@@ -383,7 +405,7 @@
           },
           "position": {
             "x": 0,
-            "y": 4,
+            "y": 6,
             "width": 12,
             "height": 2
           }
@@ -408,6 +430,10 @@
                     {
                       "name": "banos",
                       "expression": "`banos`"
+                    },
+                    {
+                      "name": "estacionamientos",
+                      "expression": "`estacionamientos`"
                     },
                     {
                       "name": "superficie_util_m2",
@@ -471,6 +497,9 @@
                     "fieldName": "banos",
                     "contentAlignment": "center",
                     "displayName": "Baños"
+                  },
+                  {
+                    "fieldName": "estacionamientos"
                   },
                   {
                     "fieldName": "superficie_util_m2",
@@ -582,7 +611,7 @@
           },
           "position": {
             "x": 0,
-            "y": 6,
+            "y": 8,
             "width": 6,
             "height": 12
           }
@@ -661,7 +690,7 @@
           },
           "position": {
             "x": 6,
-            "y": 6,
+            "y": 8,
             "width": 6,
             "height": 12
           }
@@ -710,7 +739,7 @@
           },
           "position": {
             "x": 6,
-            "y": 2,
+            "y": 4,
             "width": 3,
             "height": 2
           }
@@ -759,7 +788,7 @@
           },
           "position": {
             "x": 9,
-            "y": 2,
+            "y": 4,
             "width": 3,
             "height": 2
           }
