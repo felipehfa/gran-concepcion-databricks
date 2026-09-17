@@ -1,0 +1,196 @@
+{
+  "email_notifications": {
+    "on_failure": [
+      "felipehfa@gmail.com"
+    ],
+    "on_success": [
+      "felipehfa@gmail.com"
+    ]
+  },
+  "format": "MULTI_TASK",
+  "max_concurrent_runs": 1,
+  "name": "gran_concepcion_pipeline",
+  "queue": {
+    "enabled": true
+  },
+  "schedule": {
+    "pause_status": "UNPAUSED",
+    "quartz_cron_expression": "0 0 0,6,12,18 * * ?",
+    "timezone_id": "America/Santiago"
+  },
+  "tasks": [
+    {
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+        "notebook_path": "/Users/felipehfa@gmail.com/gran-concepcion-databricks/01_bronce/01_scraper_manual_grilla_bronce_python",
+        "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "scraper_grilla",
+      "timeout_seconds": 0
+    },
+    {
+      "depends_on": [
+        {
+          "task_key": "scraper_grilla"
+        }
+      ],
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+        "notebook_path": "/Users/felipehfa@gmail.com/gran-concepcion-databricks/01_bronce/02_scraper_manual_detalle_bronce_python",
+        "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "scraper_detalle",
+      "timeout_seconds": 0
+    },
+    {
+      "depends_on": [
+        {
+          "task_key": "scraper_detalle"
+        }
+      ],
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+        "notebook_path": "/Users/felipehfa@gmail.com/gran-concepcion-databricks/02_plata/03_tasas_historicas_plata_python",
+        "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "tasas_historicas",
+      "timeout_seconds": 0
+    },
+    {
+      "depends_on": [
+        {
+          "task_key": "tasas_historicas"
+        }
+      ],
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+        "notebook_path": "/Users/felipehfa@gmail.com/gran-concepcion-databricks/02_plata/04_limpieza_plata_sql",
+        "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "limpieza_plata",
+      "timeout_seconds": 0
+    },
+    {
+      "depends_on": [
+        {
+          "task_key": "limpieza_plata"
+        }
+      ],
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+        "notebook_path": "/Users/felipehfa@gmail.com/gran-concepcion-databricks/02_plata/05_imputacion_superficie_plata_python",
+        "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "imputacion_superficie",
+      "timeout_seconds": 0
+    },
+    {
+      "depends_on": [
+        {
+          "task_key": "imputacion_superficie"
+        }
+      ],
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+        "notebook_path": "/Users/felipehfa@gmail.com/gran-concepcion-databricks/03_oro/06_features_oro_sql",
+        "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "features_oro",
+      "timeout_seconds": 0
+    },
+    {
+      "depends_on": [
+        {
+          "task_key": "features_oro"
+        }
+      ],
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+        "notebook_path": "/Users/felipehfa@gmail.com/gran-concepcion-databricks/03_oro/07_vulnerabilidad_oro_python",
+        "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "vulnerabilidad_oro",
+      "timeout_seconds": 0
+    },
+    {
+      "depends_on": [
+        {
+          "task_key": "vulnerabilidad_oro"
+        }
+      ],
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+        "notebook_path": "/Users/felipehfa@gmail.com/gran-concepcion-databricks/03_oro/09_actualizacion_estado_avisos_oro_python",
+        "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "actualizacion_estado",
+      "timeout_seconds": 0
+    },
+    {
+      "depends_on": [
+        {
+          "task_key": "actualizacion_estado"
+        }
+      ],
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+        "notebook_path": "/Users/felipehfa@gmail.com/gran-concepcion-databricks/03_oro/10_prediccion_oro_python",
+        "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "prediccion_oro",
+      "timeout_seconds": 0
+    },
+    {
+      "depends_on": [
+        {
+          "task_key": "prediccion_oro"
+        }
+      ],
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+        "notebook_path": "/Users/felipehfa@gmail.com/gran-concepcion-databricks/03_oro/11_modelo_dimensional_oro_sql",
+        "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "modelo_dimensional",
+      "timeout_seconds": 0
+    },
+    {
+      "depends_on": [
+        {
+          "task_key": "modelo_dimensional"
+        }
+      ],
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+        "notebook_path": "/Users/felipehfa@gmail.com/gran-concepcion-databricks/03_oro/12_snapshot_historial_tablas_oro_python",
+        "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "snapshot_historial",
+      "timeout_seconds": 0
+    }
+  ],
+  "timeout_seconds": 0,
+  "webhook_notifications": {}
+}
