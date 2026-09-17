@@ -1,0 +1,80 @@
+resources:
+  jobs:
+    gran_concepcion_pipeline:
+      name: gran_concepcion_pipeline
+      email_notifications:
+        on_success:
+          - felipehfa@gmail.com
+        on_failure:
+          - felipehfa@gmail.com
+      schedule:
+        quartz_cron_expression: 0 0 0,6,12,18 * * ?
+        timezone_id: America/Santiago
+        pause_status: UNPAUSED
+      tasks:
+        - task_key: scraper_grilla
+          notebook_task:
+            notebook_path: /Users/felipehfa@gmail.com/gran-concepcion-databricks/02_ELT/01_bronce/01_scraper_manual_grilla_bronce_python
+            source: WORKSPACE
+        - task_key: scraper_detalle
+          depends_on:
+            - task_key: scraper_grilla
+          notebook_task:
+            notebook_path: /Users/felipehfa@gmail.com/gran-concepcion-databricks/02_ELT/01_bronce/02_scraper_manual_detalle_bronce_python
+            source: WORKSPACE
+        - task_key: tasas_historicas
+          depends_on:
+            - task_key: scraper_detalle
+          notebook_task:
+            notebook_path: /Users/felipehfa@gmail.com/gran-concepcion-databricks/02_ELT/02_silver/03_tasas_historicas_plata_python
+            source: WORKSPACE
+        - task_key: limpieza_plata
+          depends_on:
+            - task_key: tasas_historicas
+          notebook_task:
+            notebook_path: /Users/felipehfa@gmail.com/gran-concepcion-databricks/02_ELT/02_silver/04_limpieza_plata_sql
+            source: WORKSPACE
+        - task_key: imputacion_superficie
+          depends_on:
+            - task_key: limpieza_plata
+          notebook_task:
+            notebook_path: /Users/felipehfa@gmail.com/gran-concepcion-databricks/02_ELT/02_silver/05_imputacion_superficie_plata_python
+            source: WORKSPACE
+        - task_key: features_oro
+          depends_on:
+            - task_key: imputacion_superficie
+          notebook_task:
+            notebook_path: /Users/felipehfa@gmail.com/gran-concepcion-databricks/02_ELT/03_oro/06_features_oro_sql
+            source: WORKSPACE
+        - task_key: vulnerabilidad_oro
+          depends_on:
+            - task_key: features_oro
+          notebook_task:
+            notebook_path: /Users/felipehfa@gmail.com/gran-concepcion-databricks/02_ELT/03_oro/07_vulnerabilidad_oro_python
+            source: WORKSPACE
+        - task_key: actualizacion_estado
+          depends_on:
+            - task_key: vulnerabilidad_oro
+          notebook_task:
+            notebook_path: /Users/felipehfa@gmail.com/gran-concepcion-databricks/02_ELT/03_oro/09_actualizacion_estado_avisos_oro_python
+            source: WORKSPACE
+        - task_key: prediccion_oro
+          depends_on:
+            - task_key: actualizacion_estado
+          notebook_task:
+            notebook_path: /Users/felipehfa@gmail.com/gran-concepcion-databricks/02_ELT/03_oro/10_prediccion_oro_python
+            source: WORKSPACE
+        - task_key: modelo_dimensional
+          depends_on:
+            - task_key: prediccion_oro
+          notebook_task:
+            notebook_path: /Users/felipehfa@gmail.com/gran-concepcion-databricks/02_ELT/03_oro/11_modelo_dimensional_oro_sql
+            source: WORKSPACE
+        - task_key: snapshot_historial
+          depends_on:
+            - task_key: modelo_dimensional
+          notebook_task:
+            notebook_path: /Users/felipehfa@gmail.com/gran-concepcion-databricks/02_ELT/03_oro/12_snapshot_historial_tablas_oro_python
+            source: WORKSPACE
+      queue:
+        enabled: true
