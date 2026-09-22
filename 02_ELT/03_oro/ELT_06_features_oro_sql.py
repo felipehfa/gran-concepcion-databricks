@@ -4,7 +4,7 @@
 # environment_version = "5"
 # ///
 # MAGIC %md
-# MAGIC # 06 — Ingeniería de variables (Oro), incremental
+# MAGIC # 06, Ingeniería de variables (Oro), incremental
 # MAGIC
 # MAGIC Toma `gran_concepcion.02_plata.avisos_limpios` y agrega las features
 # MAGIC finales para el modelo, puntuando cada aviso nuevo contra la **población
@@ -12,7 +12,7 @@
 # MAGIC (el mismo dataset con el que se entrenó el modelo vigente), en vez de
 # MAGIC contra el resto de avisos que vayan llegando. Así el vector de features de
 # MAGIC un aviso no cambia según cuándo se corra el pipeline ni según qué otros
-# MAGIC avisos hayan llegado antes o después — igual que en el proyecto original.
+# MAGIC avisos hayan llegado antes o después, igual que en el proyecto original.
 # MAGIC
 # MAGIC Calcula: distancias Haversine a los centros de comuna y de Concepción,
 # MAGIC `ratio_total_util`, `amoblado` (desde el título, no desde el campo de
@@ -44,7 +44,7 @@
 # MAGIC
 # MAGIC Este notebook **no lee nada de Bronce directamente**: todo lo que
 # MAGIC necesita (incluida `url`, que ahora viaja Bronce→Plata→Oro) ya llega vía
-# MAGIC `avisos_limpios` — a diferencia de `07_vulnerabilidad_oro_python.py`, que
+# MAGIC `avisos_limpios`, a diferencia de `07_vulnerabilidad_oro_python.py`, que
 # MAGIC sí lee una tabla de referencia de Bronce por una razón puntual (ver su
 # MAGIC propio notebook).
 
@@ -102,7 +102,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC
 # MAGIC También anula `latitud`/`longitud` fuera de la caja de sanidad geográfica
 # MAGIC del Gran Concepción (mismos límites que `CAJA_LATITUD_GRAN_CONCEPCION`/
-# MAGIC `CAJA_LONGITUD_GRAN_CONCEPCION` del proyecto original — caso real que
+# MAGIC `CAJA_LONGITUD_GRAN_CONCEPCION` del proyecto original, caso real que
 # MAGIC motivó el filtro allá: un aviso con coordenadas en Madrid produciendo una
 # MAGIC `distancia_centro_concepcion_m` de ~11.000 km). A diferencia del original
 # MAGIC (que descarta la fila completa de su dataset de entrenamiento), acá se
@@ -165,7 +165,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC Concepción (fijo: `-36.8265, -73.0524`, mismo punto que
 # MAGIC `concepcion-biobio`). `amoblado` se deriva del TÍTULO del aviso (mismo
 # MAGIC criterio que el modelo original), no del campo "Amoblado" de la página de
-# MAGIC detalle — se reemplaza el `amoblado` que ya trae Plata (de otra fuente)
+# MAGIC detalle, se reemplaza el `amoblado` que ya trae Plata (de otra fuente)
 # MAGIC por este.
 
 # COMMAND ----------
@@ -199,20 +199,20 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC %md
 # MAGIC ### 6. Rellenar con 0 los amenities/POIs sin dato
 # MAGIC Ausencia de dato equivale a "no tiene"/"no hay ninguno cerca", mismo
-# MAGIC criterio que `normalizar_columnas_nuevas` del original — reemplaza los
+# MAGIC criterio que `normalizar_columnas_nuevas` del original, reemplaza los
 # MAGIC valores NULL que trae Plata por 0, en vez de dejarlos sin resolver.
 # MAGIC
 # MAGIC Las 11 columnas `cantidad_*` (mismo set que `columnas_cantidad` en
 # MAGIC `01_ingenieria_variables.py` del original) ya se tipan con `TRY_CAST` en
 # MAGIC Plata (`04_limpieza_plata_sql.py`), pero `avisos_limpios.cantidad_*` es
-# MAGIC una tabla Delta ya desplegada con esas columnas como STRING — un
+# MAGIC una tabla Delta ya desplegada con esas columnas como STRING, un
 # MAGIC `ALTER`/recreación de esquema pendiente, no algo que este notebook pueda
 # MAGIC asumir ya resuelto. Confirmado contra datos reales: TODOS los avisos
 # MAGIC traen `"5.0"` (con punto decimal), y un `CAST(... AS INT)` directo sobre
 # MAGIC eso revienta con `CAST_INVALID_INPUT` en modo ANSI (activo por default en
 # MAGIC serverless). Por eso acá se mantiene `TRY_CAST(... AS DOUBLE)` como red de
 # MAGIC seguridad, independiente de si la columna de origen es STRING o ya DOUBLE
-# MAGIC — es un no-op si ya viene tipada, y evita el crash si no.
+# MAGIC, es un no-op si ya viene tipada, y evita el crash si no.
 
 # COMMAND ----------
 
@@ -298,7 +298,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC ### 9. Respaldo de vulnerabilidad socioterritorial (media de la comuna, en la referencia)
 # MAGIC `07_vulnerabilidad_oro_python` corre DESPUÉS de este notebook y resuelve
 # MAGIC estas columnas por cruce punto-en-polígono, sobreescribiendo el respaldo
-# MAGIC calculado acá en cuanto lo logre — mismo orden de prioridad que el
+# MAGIC calculado acá en cuanto lo logre, mismo orden de prioridad que el
 # MAGIC original (valor real del cruce > media de la comuna > media global).
 
 # COMMAND ----------
@@ -341,7 +341,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC ### 11. `antiguedad_anos`: cascada EN LA POBLACIÓN DE REFERENCIA
 # MAGIC Si el aviso ya trae antigüedad, se deja tal cual. Si no, cascada de
 # MAGIC fallbacks contra `stg_poblacion_referencia` (no contra Plata), igual orden que
-# MAGIC el original: 1) coordenada EXACTA (mismo edificio/condominio — ahí el
+# MAGIC el original: 1) coordenada EXACTA (mismo edificio/condominio, ahí el
 # MAGIC original usa moda en vez de mediana, pero como en la práctica todos los
 # MAGIC avisos de un mismo edificio comparten la misma antigüedad, la mediana da
 # MAGIC el mismo resultado); 2) mediana de vecinos dentro de 200 metros; 3)
@@ -422,7 +422,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 # MAGIC ### 12. `precio_m2_sector_departamento`: vecinos dentro de 300m EN LA POBLACIÓN DE REFERENCIA
 # MAGIC Solo contra los avisos de referencia marcados `precio_m2_valido = true`
 # MAGIC (el filtro IQR ya se calculó UNA vez, de forma global, al cargar la
-# MAGIC población — no un IQR distinto por cada aviso o vecindario). Si no hay
+# MAGIC población, no un IQR distinto por cada aviso o vecindario). Si no hay
 # MAGIC vecinos válidos, cae a la mediana de respaldo y queda
 # MAGIC `tiene_comparables_cercanos = false`.
 
@@ -472,7 +472,7 @@ print(f"{spark.table('plata_pendiente').count()} avisos pendientes de procesar e
 
 # MAGIC %md
 # MAGIC ### 13. Ensamblar la tabla final de Oro
-# MAGIC Se agrega `fecha_creacion_oro` con el momento exacto del procesamiento —
+# MAGIC Se agrega `fecha_creacion_oro` con el momento exacto del procesamiento,
 # MAGIC como esta vista solo cubre avisos NUEVOS, cada fila queda con la fecha en
 # MAGIC que efectivamente entró a Oro. Se conservan todas las columnas de Plata
 # MAGIC (informativas) además de las 30 features del modelo.
@@ -519,7 +519,7 @@ print(f"Procesadas {spark.table('pendientes_oro').count()} filas.")
 # MAGIC %md
 # MAGIC #### Chequeo de esquema (inspección manual)
 # MAGIC Compara el esquema de lo recién insertado contra el de la tabla ya
-# MAGIC existente — útil al correr el notebook a mano para detectar de inmediato
+# MAGIC existente, útil al correr el notebook a mano para detectar de inmediato
 # MAGIC una columna con el tipo equivocado, antes de llegar a la verificación
 # MAGIC final de la sección 17.
 

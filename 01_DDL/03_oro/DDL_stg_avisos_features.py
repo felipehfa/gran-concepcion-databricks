@@ -4,10 +4,10 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # DDL — `gran_concepcion.03_oro.stg_avisos_features`
+# MAGIC # DDL, `gran_concepcion.03_oro.stg_avisos_features`
 # MAGIC
 # MAGIC **Creada por:** `03_oro/06_features_oro_sql.py` (sección 14,
-# MAGIC `CREATE TABLE ... AS SELECT` a partir de `pendientes_oro`) — el notebook
+# MAGIC `CREATE TABLE ... AS SELECT` a partir de `pendientes_oro`), el notebook
 # MAGIC fuente NO tiene un DDL explícito, el esquema lo infiere Spark de la
 # MAGIC cadena de vistas temporales (misma situación que `avisos_limpios` en
 # MAGIC Plata). Columnas agregadas después vía `ALTER TABLE ADD COLUMNS`:
@@ -20,7 +20,7 @@
 # MAGIC de solo lectura: correrla no reemplaza el `CREATE TABLE ... AS SELECT`
 # MAGIC real del notebook fuente.
 # MAGIC
-# MAGIC OBT — el feature store completo: hereda ~90 columnas de
+# MAGIC OBT, el feature store completo: hereda ~90 columnas de
 # MAGIC `avisos_limpios` (texto crudo + parseado) y agrega las ~15 features
 # MAGIC calculadas por Oro. Fuente de las 4 dimensiones satélite
 # MAGIC (`dim_descripcion_propiedad`, `dim_amenidades`, `dim_ubicacion` vía
@@ -31,13 +31,13 @@
 # MAGIC - `fecha_chequeo_estado_oro`/`intentos_fallidos_chequeo_estado_oro` están
 # MAGIC   declaradas abajo como parte del esquema completo del diseño, pero
 # MAGIC   `09_actualizacion_estado_avisos_oro_python.py` todavía no había
-# MAGIC   corrido contra este catálogo — esas dos columnas pueden no existir
+# MAGIC   corrido contra este catálogo, esas dos columnas pueden no existir
 # MAGIC   todavía en la tabla real hasta la primera corrida de ese notebook.
 # MAGIC - `rn` (BIGINT/INT) aparece al final de la tabla real, sobrante del
 # MAGIC   dedup de la sección 15 (`ROW_NUMBER() ... AS rn`, `WHERE rn = 1`,
 # MAGIC   `CREATE OR REPLACE TABLE ... AS SELECT`). Es un bug latente del
 # MAGIC   notebook original: `seleccion_base` solo excluye `rn` de las columnas
-# MAGIC   ORIGINALES, pero el `SELECT` siempre vuelve a agregar `rn` al final —
+# MAGIC   ORIGINALES, pero el `SELECT` siempre vuelve a agregar `rn` al final,
 # MAGIC   nunca se limpia. No se declara en el DDL de abajo (no debería existir
 # MAGIC   como columna permanente); si aparece en `DESCRIBE TABLE`, es la señal
 # MAGIC   de que ese bug sigue sin corregirse en `06_features_oro_sql.py`.
@@ -47,7 +47,7 @@
 # MAGIC   que en `avisos_limpios`, ver `02_plata/ddl/avisos_limpios.py`): los 7
 # MAGIC   booleanos pasaron de `DOUBLE` a `INT` (mismo tipo que
 # MAGIC   `amoblado`/`admite_mascotas`) y `solo_familias_texto` de `void` a
-# MAGIC   `STRING` — este último bloqueaba el `INSERT INTO` incremental de
+# MAGIC   `STRING`, este último bloqueaba el `INSERT INTO` incremental de
 # MAGIC   `06_features_oro_sql.py` en cuanto llegaba un aviso con ese campo
 # MAGIC   poblado (`DELTA_METADATA_MISMATCH`).
 

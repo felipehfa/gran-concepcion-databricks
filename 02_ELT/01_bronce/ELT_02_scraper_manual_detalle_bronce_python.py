@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 02 — Scraper manual de detalle (Bronce)
+# MAGIC # 02, Scraper manual de detalle (Bronce)
 # MAGIC
 # MAGIC Visita individualmente cada aviso pendiente (los que ya están en la tabla
 # MAGIC `avisos` pero todavía no tienen fila en `avisos_detalle`) y extrae su
@@ -9,7 +9,7 @@
 # MAGIC sin transformar.
 # MAGIC
 # MAGIC El estado de publicación que se guarda acá (`avisos_detalle.estado_publicacion`)
-# MAGIC es el que tenía el aviso la PRIMERA vez que se scrapeó su detalle — un dato
+# MAGIC es el que tenía el aviso la PRIMERA vez que se scrapeó su detalle, un dato
 # MAGIC crudo más, igual que `descripcion` o `superficie_util_m2`, insertado una
 # MAGIC sola vez y nunca actualizado después. El RE-CHEQUEO periódico de avisos ya
 # MAGIC `activo` (para detectar si pasaron a pausado, finalizado, o si dejaron de
@@ -30,19 +30,19 @@
 # MAGIC   JSON embebido para resolver puntos de interés y estado de publicación.
 # MAGIC - Todo el scraping ocurre en **pandas puro**; Spark se usa para leer los
 # MAGIC   pendientes (cruzando contra el log de intentos) y para el `MERGE INTO`
-# MAGIC   final (upsert, solo inserta — nunca actualiza un aviso ya existente)
+# MAGIC   final (upsert, solo inserta, nunca actualiza un aviso ya existente)
 # MAGIC   hacia `avisos_detalle`.
 # MAGIC - Se detiene de inmediato ante un CAPTCHA, dejando guardado en memoria lo ya
 # MAGIC   procesado hasta ese punto, y activa un cooldown (tabla `control`) para que
 # MAGIC   la próxima corrida no vuelva a intentar de inmediato.
-# MAGIC - **Un tercer tipo de bloqueo — muro de verificación de cuenta del sitio**
+# MAGIC - **Un tercer tipo de bloqueo, muro de verificación de cuenta del sitio**
 # MAGIC   (redirige CUALQUIER URL a un login/verificación, con status 200 y sin
-# MAGIC   CAPTCHA visible) — se detecta aparte por la URL final tras redirects
+# MAGIC   CAPTCHA visible), se detecta aparte por la URL final tras redirects
 # MAGIC   (`_es_muro_verificacion`) y se trata igual que un CAPTCHA: corta la
 # MAGIC   corrida completa de inmediato, sin registrar ningún intento fallido y sin
 # MAGIC   tocar ningún aviso. Mismo mecanismo que agregó el proyecto original tras
 # MAGIC   un incidente real en agosto 2026 (ver su README, sección 9.5), donde este
-# MAGIC   bloqueo — sin esta detección — hizo que ~1550 avisos activos se
+# MAGIC   bloqueo, sin esta detección, hizo que ~1550 avisos activos se
 # MAGIC   marcaran erróneamente como eliminados.
 # MAGIC - Un aviso que falla la extracción de forma persistente (entre corridas, no
 # MAGIC   dentro de la misma) sale de la cola de pendientes tras acumular
@@ -221,8 +221,8 @@ CLAVES_ESTADO_PUBLICACION = ("item_status_message", "item_status_short_descripti
 # MAGIC
 # MAGIC `avisos_detalle` incluye `estado_publicacion` (captura cruda de la primera
 # MAGIC visita) y partición por `fecha_scrapeo`. `intentos_scraping_detalle` es un
-# MAGIC log append-only — una fila por cada intento de scrapeo de detalle (nuevo o
-# MAGIC reintento), nunca se actualiza una fila existente — que reemplaza los
+# MAGIC log append-only, una fila por cada intento de scrapeo de detalle (nuevo o
+# MAGIC reintento), nunca se actualiza una fila existente, que reemplaza los
 # MAGIC contadores mutables que antes vivían en `avisos`.
 
 # COMMAND ----------
@@ -358,7 +358,7 @@ class PaginaHTMLEstatico:
 # MAGIC HTML crudo, y si no aparece, cae al parámetro `center=lat,lon` del mapa
 # MAGIC embebido. `extraer_json_estado_pagina` aísla el bloque JSON `_n.ctx.r` que
 # MAGIC trae, sin recortar, todas las categorías de puntos de interés y el estado
-# MAGIC de publicación — la fuente que usan las funciones de la sección 5.
+# MAGIC de publicación, la fuente que usan las funciones de la sección 5.
 
 # COMMAND ----------
 
@@ -634,7 +634,7 @@ def _url_coincide_con_aviso(html, id_aviso):
 # MAGIC barrio, puntos de interés y estado de publicación, y arma un solo dict con
 # MAGIC todos los campos crudos (sin castear nada). `hay_captcha` usa doble
 # MAGIC condición a propósito: la palabra "captcha" en el HTML **y** ninguna señal
-# MAGIC de contenido real (superficie/dormitorios) — el reCAPTCHA de fondo casi
+# MAGIC de contenido real (superficie/dormitorios), el reCAPTCHA de fondo casi
 # MAGIC siempre está presente en el HTML aunque la página haya cargado bien, así
 # MAGIC que exigir ambas condiciones evita falsos positivos. `construir_referer`
 # MAGIC arma la URL de la página de búsqueda de origen, para que el request de
@@ -806,7 +806,7 @@ def obtener_detalle_aviso(url, id_aviso, comuna, tipo_propiedad):
 # MAGIC Cooldown tras CAPTCHA (tabla `control`, sin cambios) y registro de cada
 # MAGIC intento de scrapeo. A diferencia del diseño anterior, acá no hay ningún
 # MAGIC `UPDATE`: cada intento (ok/error/no_encontrado) se **inserta** como una
-# MAGIC fila nueva en `intentos_scraping_detalle` — fila por fila, a medida que se
+# MAGIC fila nueva en `intentos_scraping_detalle`, fila por fila, a medida que se
 # MAGIC visita cada aviso, en vez de esperar al final de la corrida, para que un
 # MAGIC aviso ya intentado quede registrado aunque la corrida se corte después por
 # MAGIC CAPTCHA.
@@ -867,8 +867,8 @@ def visitar_aviso(fila, resultados_acumulados):
     (append-only, Bronce nunca se actualiza) - EXCEPTO "bloqueado", que no
     es un resultado propio de este aviso (ver más abajo). Devuelve 'ok',
     'error', 'no_encontrado', 'captcha' o 'bloqueado'. Si el resultado es
-    exitoso, agrega la fila completa —incluido `estado_publicacion`, la
-    captura cruda de esta primera visita— a `resultados_acumulados` para el
+    exitoso, agrega la fila completa,incluido `estado_publicacion`, la
+    captura cruda de esta primera visita, a `resultados_acumulados` para el
     MERGE final hacia `avisos_detalle`.
 
     HISTORIAL (por qué "no_encontrado" ya NO excluye al aviso de inmediato):
@@ -959,7 +959,7 @@ else:
 # MAGIC LEFT JOIN entre `avisos` y `avisos_detalle` en Bronce: trae solo los avisos
 # MAGIC que todavía no tienen su detalle scrapeado. Se excluyen los que acumulan
 # MAGIC `MAX_INTENTOS_FALLIDOS_DETALLE` o más intentos `error`+`no_encontrado`
-# MAGIC combinados en `intentos_scraping_detalle` — reemplaza el chequeo que antes
+# MAGIC combinados en `intentos_scraping_detalle`, reemplaza el chequeo que antes
 # MAGIC usaba las columnas mutables de `avisos`. `no_encontrado` ya no se excluye
 # MAGIC con un solo intento (ver sección 8): un mismatch de canonical/og:url puede
 # MAGIC deberse a un bloqueo temporal del sitio completo, no solo a que el aviso
@@ -1039,10 +1039,22 @@ df_detalle.head()
 # MAGIC Punto único de contacto con Spark: convierte `df_detalle` (pandas) en una
 # MAGIC vista SQL temporal para que el `%sql MERGE` de la sección 14 la pueda
 # MAGIC referenciar.
+# MAGIC
+# MAGIC Si no hay avisos nuevos (`df_detalle` vacío, ej. la cola de pendientes ya
+# MAGIC estaba al día), `spark.createDataFrame(df_detalle)` no puede inferir un
+# MAGIC esquema de un DataFrame de pandas vacío (`CANNOT_INFER_EMPTY_SCHEMA`). En
+# MAGIC ese caso se arma la vista vacía con el esquema real de
+# MAGIC `avisos_detalle` (`WHERE 1=0`) en vez de inferirlo, para que el `MERGE`
+# MAGIC de la sección 14 quede como no-op en vez de romper la corrida.
 
 # COMMAND ----------
 
-spark.createDataFrame(df_detalle).createOrReplaceTempView("detalle_upsert_tmp")
+if len(df_detalle) == 0:
+    print("No hay avisos nuevos: vista temporal vacía, el MERGE de la sección 14 no insertará nada.")
+    spark.sql("SELECT * FROM gran_concepcion.01_bronce.avisos_detalle WHERE 1 = 0") \
+        .createOrReplaceTempView("detalle_upsert_tmp")
+else:
+    spark.createDataFrame(df_detalle).createOrReplaceTempView("detalle_upsert_tmp")
 
 # COMMAND ----------
 

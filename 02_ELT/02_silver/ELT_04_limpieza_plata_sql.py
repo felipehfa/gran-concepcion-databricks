@@ -4,7 +4,7 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # 04 — Limpieza SQL (Plata), incremental
+# MAGIC # 04, Limpieza SQL (Plata), incremental
 # MAGIC
 # MAGIC Procesa **solo** los avisos de Bronce que todavía no existen en
 # MAGIC `gran_concepcion.02_plata.avisos_limpios` (comparando por `id_aviso`), y
@@ -15,10 +15,10 @@
 # MAGIC Esta capa solo parsea y tipa los datos crudos de Bronce (números en
 # MAGIC formato chileno, booleanos "Sí"/"No", conversión de precio a CLP,
 # MAGIC conteos/distancias de amenities y POIs). Todo el tipado del pipeline pasa
-# MAGIC por acá — Oro nunca castea un STRING crudo de Bronce, solo consume
+# MAGIC por acá, Oro nunca castea un STRING crudo de Bronce, solo consume
 # MAGIC columnas ya tipadas de `avisos_limpios`. No imputa ni descarta nada todavía: eso ocurre después, en la etapa de
 # MAGIC features de Oro, contra la población de referencia congelada del modelo
-# MAGIC (ver `03_oro/06_features_oro_sql.py`) — así el aviso que llega a Oro se
+# MAGIC (ver `03_oro/06_features_oro_sql.py`), así el aviso que llega a Oro se
 # MAGIC puntúa exactamente igual que en el proyecto original, sea cual sea el
 # MAGIC estado del catálogo en el momento de la corrida.
 # MAGIC
@@ -48,7 +48,7 @@
 # MAGIC ### 1.5 Asegurar columnas nuevas en `avisos_limpios` (si la tabla ya existe)
 # MAGIC Si `avisos_limpios` viene de una corrida anterior a que `url` y las
 # MAGIC columnas de metadata (`_sistema_origen`, `_id_corrida`) se agregaran acá,
-# MAGIC el `ALTER TABLE` falla silenciosamente (se captura la excepción) — mismo
+# MAGIC el `ALTER TABLE` falla silenciosamente (se captura la excepción), mismo
 # MAGIC patrón que usan `05_imputacion_superficie_plata_python.py` y
 # MAGIC `07_vulnerabilidad_oro_python.py`. Si la tabla no existe todavía, no hace
 # MAGIC falta nada: se crea con el esquema correcto en la sección 7.
@@ -287,7 +287,7 @@ print(f"{spark.table('base_avisos_pendientes').count()} avisos pendientes de lim
 # MAGIC
 # MAGIC **El filtro de precio máximo NO va acá.** El proyecto original lo aplica
 # MAGIC sobre `precio_clp` (ya convertido a CLP) recién en la etapa de predicción,
-# MAGIC no sobre el monto crudo en la moneda original — un aviso en UF nunca
+# MAGIC no sobre el monto crudo en la moneda original, un aviso en UF nunca
 # MAGIC dispararía un filtro de "precio > 8.000.000" antes de convertir (las UF
 # MAGIC son números de 3 cifras). Ver `04_prediccion/08_prediccion_oro_python.py`.
 
@@ -314,7 +314,7 @@ print(f"{spark.table('base_avisos_pendientes').count()} avisos pendientes de lim
 # MAGIC `fecha_publicacion_aprox`/`first_seen` llegan como STRING desde Bronce
 # MAGIC (ISO `yyyy-MM-dd`); el join contra `valores_pesos.fecha_valor` (`DATE`)
 # MAGIC se hace con `TRY_CAST(... AS DATE)` explícito en vez de dejar que Spark
-# MAGIC castee implícitamente el STRING al comparar — mismo motivo que el fix de
+# MAGIC castee implícitamente el STRING al comparar, mismo motivo que el fix de
 # MAGIC `CAST_INVALID_INPUT` en Oro: un string mal formado en modo ANSI revienta
 # MAGIC la corrida en vez de simplemente no encontrar match.
 

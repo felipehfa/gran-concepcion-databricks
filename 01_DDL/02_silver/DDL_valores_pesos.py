@@ -4,10 +4,10 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # DDL — `gran_concepcion.02_plata.valores_pesos`
+# MAGIC # DDL, `gran_concepcion.02_plata.valores_pesos`
 # MAGIC
 # MAGIC **Creada por:** `02_plata/03_tasas_historicas_plata_python.py` (sección
-# MAGIC 1) — referencia de solo lectura, el notebook fuente la crea inline con
+# MAGIC 1), referencia de solo lectura, el notebook fuente la crea inline con
 # MAGIC `CREATE TABLE IF NOT EXISTS`. Correr esta celda es idempotente; no
 # MAGIC reemplaza esa lógica, sirve para recrear el esquema en un workspace nuevo
 # MAGIC o inspeccionar la definición sin abrir el notebook fuente.

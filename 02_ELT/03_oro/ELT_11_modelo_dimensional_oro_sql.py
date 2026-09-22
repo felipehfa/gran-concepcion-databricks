@@ -4,25 +4,25 @@
 # environment_version = "5"
 # ///
 # MAGIC %md
-# MAGIC # 11 — Modelo dimensional (Oro), incremental
+# MAGIC # 11, Modelo dimensional (Oro), incremental
 # MAGIC
 # MAGIC Construye la capa de consumo para Power BI a partir de las tablas de
 # MAGIC staging que ya arma el resto de Oro (`stg_avisos_features`,
-# MAGIC `stg_predicciones`) — comparar precio real vs. predicción del modelo e
+# MAGIC `stg_predicciones`), comparar precio real vs. predicción del modelo e
 # MAGIC identificar avisos activos sobre/bajo precio de mercado, sin que el
 # MAGIC reporte tenga que leer directo el OBT ancho ni entender el detalle de
 # MAGIC cómo se calculan las features.
 # MAGIC
 # MAGIC **Esquema** (ver diseño completo en la conversación que originó este
 # MAGIC notebook): cuatro dimensiones satélite 1:1 con el aviso
-# MAGIC (`dim_descripcion_propiedad`, `dim_amenidades`, `dim_ubicacion` — con FK
-# MAGIC a `dim_barrio` —, más `dim_tiempo` y dos SCD2 —
-# MAGIC `dim_estado_aviso_scd2`, `dim_prediccion_scd2` —), y `fact_aviso`: un
+# MAGIC (`dim_descripcion_propiedad`, `dim_amenidades`, `dim_ubicacion`, con FK
+# MAGIC a `dim_barrio`,, más `dim_tiempo` y dos SCD2,
+# MAGIC `dim_estado_aviso_scd2`, `dim_prediccion_scd2`,), y `fact_aviso`: un
 # MAGIC hecho snapshot (se sobreescribe, no acumula versiones) con grano 1 fila
 # MAGIC por aviso, que concentra las 6 FK directo sin hub intermedio.
 # MAGIC
 # MAGIC **`fact_aviso` solo incluye avisos que ya tienen al menos una
-# MAGIC predicción** — sin eso no hay nada que comparar. Un aviso recién
+# MAGIC predicción**, sin eso no hay nada que comparar. Un aviso recién
 # MAGIC scrapeado que todavía no pasó por `10_prediccion_oro_python.py` no
 # MAGIC aparece acá todavía; entra solo en la corrida en que ya tenga una fila
 # MAGIC vigente en `dim_prediccion_scd2`.
@@ -35,7 +35,7 @@
 
 # MAGIC %md
 # MAGIC ### 1. Crear las tablas dimensionales (si no existen)
-# MAGIC `dim_barrio` no se crea acá — la puebla `00_carga_manual_poblacion_referencia_oro_python.py`,
+# MAGIC `dim_barrio` no se crea acá, la puebla `00_carga_manual_poblacion_referencia_oro_python.py`,
 # MAGIC porque es carga manual de referencia estática, no incremental.
 
 # COMMAND ----------
@@ -174,7 +174,7 @@ print("Tablas dimensionales verificadas/creadas.")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 2. `dim_descripcion_propiedad` — MERGE desde `stg_avisos_features`
+# MAGIC ### 2. `dim_descripcion_propiedad`, MERGE desde `stg_avisos_features`
 # MAGIC SCD1: refresca los atributos si cambian (ej. una imputación de superficie
 # MAGIC que llegó tarde), inserta si es un aviso nuevo. `amoblado`/`ascensor`/etc.
 # MAGIC quedan como `INT` (0/1), no `BOOLEAN`: así vienen tipados desde
@@ -186,7 +186,7 @@ print("Tablas dimensionales verificadas/creadas.")
 # MAGIC `condominio_cerrado`/`estacionamiento_visitas`/`solo_familias` llegaban
 # MAGIC en realidad como `DOUBLE` desde la fuente, y este `MERGE` funcionaba solo
 # MAGIC porque Spark angostaba el tipo en silencio al insertar contra la columna
-# MAGIC `INT` del target — ver `02_plata/ddl/avisos_limpios.py` para el detalle.
+# MAGIC `INT` del target, ver `02_plata/ddl/avisos_limpios.py` para el detalle.
 # MAGIC Ya corregido en la fuente, este `MERGE` ya no depende de ese cast
 # MAGIC implícito.)
 
@@ -229,7 +229,7 @@ print("dim_descripcion_propiedad actualizada.")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 3. `dim_amenidades` — MERGE desde `stg_avisos_features`
+# MAGIC ### 3. `dim_amenidades`, MERGE desde `stg_avisos_features`
 
 # COMMAND ----------
 
@@ -301,7 +301,7 @@ print("dim_amenidades actualizada.")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 4. `dim_ubicacion` — MERGE desde `stg_avisos_features`, con FK a `dim_barrio`
+# MAGIC ### 4. `dim_ubicacion`, MERGE desde `stg_avisos_features`, con FK a `dim_barrio`
 # MAGIC `LEFT JOIN` contra `dim_barrio` por nombre de barrio: un aviso con barrio
 # MAGIC no reconocido en el diccionario congelado (`06_features_oro_sql.py` ya le
 # MAGIC asigna `nivel_barrio_default`, pero el nombre de barrio en sí puede no
@@ -343,10 +343,10 @@ print("dim_ubicacion actualizada.")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 5. `dim_tiempo` — puebla las fechas de predicción que todavía no estén
+# MAGIC ### 5. `dim_tiempo`, puebla las fechas de predicción que todavía no estén
 # MAGIC `fecha_id = yyyyMMdd` de `fecha_prediccion`. Calendario estándar, sin
 # MAGIC dependencia de ningún otro rol de fecha (`fecha_publicacion` no tiene
-# MAGIC dimensión de tiempo propia — se dejó como atributo directo en `fact_aviso`,
+# MAGIC dimensión de tiempo propia, se dejó como atributo directo en `fact_aviso`,
 # MAGIC ver diseño).
 
 # COMMAND ----------
@@ -376,11 +376,11 @@ print("dim_tiempo actualizada.")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 6. `dim_estado_aviso_scd2` — SCD2, cerrar antes de insertar
+# MAGIC ### 6. `dim_estado_aviso_scd2`, SCD2, cerrar antes de insertar
 # MAGIC Compara `estado_publicacion` vigente en `stg_avisos_features` (que
 # MAGIC `09_actualizacion_estado_avisos_oro_python.py` mantiene al día) contra la
 # MAGIC fila `is_current = true` de esta tabla. Si cambió (o el aviso todavía no
-# MAGIC tiene fila), se cierra la vigente y se inserta la nueva — en ese orden:
+# MAGIC tiene fila), se cierra la vigente y se inserta la nueva, en ese orden:
 # MAGIC si se insertara primero, el `UPDATE` de cierre alcanzaría a la fila recién
 # MAGIC insertada y la cerraría por error.
 
@@ -412,9 +412,9 @@ print("dim_estado_aviso_scd2 actualizada.")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 7. `dim_prediccion_scd2` — SCD2, mismo patrón cierre-antes-de-insertar
+# MAGIC ### 7. `dim_prediccion_scd2`, SCD2, mismo patrón cierre-antes-de-insertar
 # MAGIC `stg_predicciones` acumula una fila por `(id_aviso, version_modelo)` sin
-# MAGIC pisar nada — acá se toma la más reciente por aviso (`ROW_NUMBER` por
+# MAGIC pisar nada, acá se toma la más reciente por aviso (`ROW_NUMBER` por
 # MAGIC `fecha_prediccion` descendente) como "lo que el modelo dice hoy", y se
 # MAGIC compara contra la fila vigente de la SCD2.
 
@@ -465,10 +465,10 @@ print("dim_prediccion_scd2 actualizada.")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 8. `fact_aviso` — snapshot, se sobreescribe con el estado vigente
+# MAGIC ### 8. `fact_aviso`, snapshot, se sobreescribe con el estado vigente
 # MAGIC `JOIN` (no `LEFT JOIN`) contra `dim_prediccion_scd2`: un aviso sin
 # MAGIC predicción todavía no tiene nada que comparar, así que no entra a
-# MAGIC `fact_aviso` en esta corrida — entrará en la primera corrida donde ya
+# MAGIC `fact_aviso` en esta corrida, entrará en la primera corrida donde ya
 # MAGIC tenga una fila vigente ahí. `costo_total_real` se recalcula acá mismo
 # MAGIC (`precio_clp + gastos_comunes`), igual fórmula que usa
 # MAGIC `10_prediccion_oro_python.py` para comparar contra la predicción.
@@ -523,20 +523,20 @@ spark.sql("OPTIMIZE gran_concepcion.03_oro.fact_aviso ZORDER BY (id_aviso)")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 10. Capa de consumo — vistas semánticas
+# MAGIC ### 10. Capa de consumo, vistas semánticas
 # MAGIC `CREATE OR REPLACE VIEW` (idempotente, sin datos propios) de las tres
 # MAGIC vistas que consume el dashboard AI/BI "Buscador de Arriendos - Gran
 # MAGIC Concepcion". El dashboard lee `SELECT * FROM` estas vistas en vez de
-# MAGIC repetir los joins y la lógica de negocio en el JSON de cada dataset —
+# MAGIC repetir los joins y la lógica de negocio en el JSON de cada dataset,
 # MAGIC así la definición queda versionada acá. Viven en `gran_concepcion.04_capa_semantica`,
 # MAGIC un schema propio para la capa semántica (separado de `03_oro`, que solo
-# MAGIC tiene las tablas gobernadas — `dim_*`/`fact_*`/`stg_*`). Definición
+# MAGIC tiene las tablas gobernadas, `dim_*`/`fact_*`/`stg_*`). Definición
 # MAGIC standalone de cada una (para recrear en un workspace nuevo o inspeccionar
 # MAGIC sin abrir este notebook) en `04_capa_semantica/views/vw_buscador_*.py`.
 # MAGIC
-# MAGIC - `vw_buscador_avisos` — 1 fila por aviso publicado con predicción vigente.
-# MAGIC - `vw_buscador_historial_diario` — serie diaria de avisos activos / entran / salen.
-# MAGIC - `vw_buscador_valor_m2_diario` — serie diaria de valor por m² útil (media/mediana/desv).
+# MAGIC - `vw_buscador_avisos`, 1 fila por aviso publicado con predicción vigente.
+# MAGIC - `vw_buscador_historial_diario`, serie diaria de avisos activos / entran / salen.
+# MAGIC - `vw_buscador_valor_m2_diario`, serie diaria de valor por m² útil (media/mediana/desv).
 
 # COMMAND ----------
 

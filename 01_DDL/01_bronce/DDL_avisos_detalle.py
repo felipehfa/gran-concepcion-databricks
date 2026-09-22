@@ -4,10 +4,10 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # DDL — `gran_concepcion.01_bronce.avisos_detalle`
+# MAGIC # DDL, `gran_concepcion.01_bronce.avisos_detalle`
 # MAGIC
 # MAGIC **Creada por:** `01_bronce/02_scraper_manual_detalle_bronce_python.ipynb`
-# MAGIC (sección 2) — referencia de solo lectura, el notebook fuente la crea
+# MAGIC (sección 2), referencia de solo lectura, el notebook fuente la crea
 # MAGIC inline con `CREATE TABLE IF NOT EXISTS`. Correr esta celda es idempotente;
 # MAGIC no reemplaza esa lógica, sirve para recrear el esquema en un workspace
 # MAGIC nuevo o inspeccionar la definición sin abrir el notebook fuente.

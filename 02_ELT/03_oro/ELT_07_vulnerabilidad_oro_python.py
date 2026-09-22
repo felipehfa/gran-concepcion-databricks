@@ -7,7 +7,7 @@
 # ]
 # ///
 # MAGIC %md
-# MAGIC # 07 — Vulnerabilidad socioterritorial (Oro)
+# MAGIC # 07, Vulnerabilidad socioterritorial (Oro)
 # MAGIC
 # MAGIC Resuelve `uv_rsh`, `rank_nac`, `pob_rsh_uv`, `p_urbano`, `c_ig_com` y
 # MAGIC `hog_uv` para cada aviso, cruzando su coordenada contra los polígonos de
@@ -17,17 +17,23 @@
 # MAGIC (salvo `uv_rsh`) con un valor de respaldo (media de la comuna en la
 # MAGIC población de referencia). El `MERGE` de acá abajo sobreescribe ese
 # MAGIC respaldo con el valor real en cuanto el cruce punto-en-polígono lo
-# MAGIC resuelve — mismo orden de prioridad que usa el proyecto original (valor
+# MAGIC resuelve, mismo orden de prioridad que usa el proyecto original (valor
 # MAGIC real > media de la comuna > media global).
 # MAGIC
 # MAGIC Se hace directamente en Oro (no en Plata): es un enriquecimiento por
 # MAGIC coordenadas geográficas, igual en naturaleza a las distancias Haversine
-# MAGIC que ya se calculan acá — no es una corrección de datos sucios, es una
+# MAGIC que ya se calculan acá, no es una corrección de datos sucios, es una
 # MAGIC feature más derivada de `latitud`/`longitud`.
 # MAGIC
 # MAGIC **Incremental:** solo procesa avisos con coordenadas válidas y `uv_rsh`
-# MAGIC todavía NULL. Una vez resuelto, no se vuelve a tocar (el cruce no cambia
-# MAGIC salvo que el shapefile de origen se actualice y se re-suba a Bronce).
+# MAGIC todavía NULL. Una vez resuelto, no se vuelve a tocar — ni siquiera si
+# MAGIC `poligonos_vulnerabilidad_uv` recibe una versión nueva de la UV después
+# MAGIC (Bronce es SCD2 append-only, ver `ELT_00_carga_manual_poligonos_...`):
+# MAGIC el aviso queda congelado con la clasificación vigente al momento en que
+# MAGIC se resolvió, mismo principio que la población de referencia congelada de
+# MAGIC `06_features_oro_sql`. Re-resolver avisos ya procesados contra una
+# MAGIC versión más nueva de un polígono sería un notebook aparte, no encaja en
+# MAGIC este patrón incremental.
 # MAGIC
 # MAGIC **Requisito previo:**
 # MAGIC - `gran_concepcion.03_oro.stg_avisos_features` ya generada (notebook 06).
@@ -101,13 +107,17 @@ for columna, tipo in columnas_a_asegurar.items():
 
 # MAGIC %md
 # MAGIC ### 4. Cargar los polígonos de Unidad Vecinal desde Bronce
-# MAGIC Parsea `geometria_wkt` (texto) a geometría real de shapely.
+# MAGIC Parsea `geometria_wkt` (texto) a geometría real de shapely. Bronce es
+# MAGIC SCD2 append-only (puede tener varias filas históricas por `uv_rsh`), así
+# MAGIC que acá se toma solo la versión vigente de cada UV (`fecha_carga` más
+# MAGIC reciente) con `QUALIFY ROW_NUMBER()`.
 
 # COMMAND ----------
 
 poligonos_rows = spark.sql("""
     SELECT uv_rsh, comuna, rank_nac, pob_rsh_uv, p_urbano, c_ig_com, hog_uv, geometria_wkt
     FROM gran_concepcion.01_bronce.poligonos_vulnerabilidad_uv
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY uv_rsh ORDER BY fecha_carga DESC) = 1
 """).collect()
 
 if not poligonos_rows:
@@ -150,7 +160,7 @@ print(f"{len(pendientes)} avisos con coordenadas pendientes de resolver vulnerab
 # MAGIC ### 6. Cruce punto-en-polígono
 # MAGIC Para cada aviso pendiente, se busca el primer polígono cuya geometría lo
 # MAGIC contenga. Los que no caen dentro de ningún polígono (fuera de las 10
-# MAGIC comunas analizadas, o coordenada imprecisa) quedan sin resolver — se
+# MAGIC comunas analizadas, o coordenada imprecisa) quedan sin resolver, se
 # MAGIC reintentan en la próxima corrida si el shapefile se actualiza.
 
 # COMMAND ----------
@@ -185,7 +195,7 @@ print(f"{len(resueltos)} avisos resueltos. {sin_uv} sin Unidad Vecinal asignada 
 
 # MAGIC %md
 # MAGIC ### 7. Escribir los resultados de vuelta (MERGE, no INSERT)
-# MAGIC Las filas ya existen en `stg_avisos_features` — se actualizan solo las
+# MAGIC Las filas ya existen en `stg_avisos_features`, se actualizan solo las
 # MAGIC columnas de vulnerabilidad de los avisos resueltos en esta corrida.
 # MAGIC
 # MAGIC La vista temporal se crea SIEMPRE, aunque `resueltos` esté vacío (ningún
@@ -218,7 +228,7 @@ else:
 
 # MAGIC %md
 # MAGIC #### Chequeo de duplicados (inspección manual)
-# MAGIC `id_aviso` es la clave de upsert del `MERGE` de abajo — si esta consulta
+# MAGIC `id_aviso` es la clave de upsert del `MERGE` de abajo, si esta consulta
 # MAGIC devuelve alguna fila, `stg_avisos_features` tiene un `id_aviso` repetido (no
 # MAGIC debería pasar nunca, dado el dedup de `06_features_oro_sql.py` sección
 # MAGIC 15) y el `MERGE` fallaría con "multiple source rows matched".

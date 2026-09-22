@@ -8,7 +8,7 @@
 # ]
 # ///
 # MAGIC %md
-# MAGIC # 00 — Carga manual de polígonos de vulnerabilidad (Bronce)
+# MAGIC # 00, Carga manual de polígonos de vulnerabilidad (Bronce)
 # MAGIC
 # MAGIC Lee el shapefile IGVUST (Índice de Vulnerabilidad Socioterritorial, por
 # MAGIC Unidad Vecinal) desde un Volume, lo recorta a las 10 comunas del Gran
@@ -17,19 +17,29 @@
 # MAGIC a WGS84 (EPSG:4326, lat/lon) y guarda el resultado como WKT en
 # MAGIC `gran_concepcion.01_bronce.poligonos_vulnerabilidad_uv`.
 # MAGIC
-# MAGIC **Corrida manual, una sola vez** (o cada vez que el shapefile IGVUST se
-# MAGIC actualice): esta tabla no cambia con cada corrida del scraper, así que no
-# MAGIC forma parte de la secuencia automática de notebooks. El resto del pipeline
-# MAGIC (`07_vulnerabilidad_oro_python`) solo lee de esta tabla ya poblada, nunca
-# MAGIC del shapefile.
+# MAGIC **Corrida manual** (aproximadamente una vez al año, cuando sale un
+# MAGIC shapefile IGVUST nuevo): esta tabla no cambia con cada corrida del
+# MAGIC scraper, así que no forma parte de la secuencia automática de notebooks.
+# MAGIC El resto del pipeline (`ELT_07_vulnerabilidad_oro_python`) solo lee de
+# MAGIC esta tabla ya poblada, nunca del shapefile.
+# MAGIC
+# MAGIC **SCD2 append-only** (2026-09-19): cada corrida agrega una fila nueva por
+# MAGIC `uv_rsh` marcada con `fecha_carga`, **nunca se hace `UPDATE`** sobre una
+# MAGIC fila ya insertada — igual que el resto de Bronce. Solo se agrega una fila
+# MAGIC si algún atributo de la UV cambió respecto a su versión vigente (sección
+# MAGIC 6); si se re-corre con el mismo shapefile, no inserta nada nuevo. La
+# MAGIC versión vigente de cada UV se deriva por `fecha_carga` más reciente, la
+# MAGIC calcula quien lee la tabla (`ELT_07_vulnerabilidad_oro_python`), no queda
+# MAGIC guardada como flag en la tabla.
 # MAGIC
 # MAGIC **Qué recibe:** el shapefile IGVUST (`.shp`/`.shx`/`.dbf`/`.prj`) ya subido
 # MAGIC a un Volume de Databricks (ruta configurable más abajo).
 # MAGIC
-# MAGIC **Qué entrega:** la tabla `poligonos_vulnerabilidad_uv` poblada con una
-# MAGIC fila por Unidad Vecinal de las 10 comunas analizadas, lista para que
-# MAGIC `07_vulnerabilidad_oro_python` resuelva el cruce punto-en-polígono de cada
-# MAGIC aviso.
+# MAGIC **Qué entrega:** la tabla `poligonos_vulnerabilidad_uv` con al menos una
+# MAGIC fila por Unidad Vecinal de las 10 comunas analizadas (una fila por cada
+# MAGIC versión histórica), lista para que `ELT_07_vulnerabilidad_oro_python`
+# MAGIC resuelva el cruce punto-en-polígono de cada aviso contra la versión
+# MAGIC vigente.
 # MAGIC
 # MAGIC **Por qué sin geopandas:** el shapefile viene en Web Mercator, no en
 # MAGIC WGS84. La conversión entre ambos sistemas tiene una fórmula cerrada simple
@@ -78,14 +88,15 @@ spark.sql("CREATE SCHEMA IF NOT EXISTS gran_concepcion.01_bronce")
 
 spark.sql("""
     CREATE TABLE IF NOT EXISTS gran_concepcion.01_bronce.poligonos_vulnerabilidad_uv (
-        uv_rsh         STRING NOT NULL,
-        comuna         STRING NOT NULL,
-        rank_nac       DOUBLE,
-        pob_rsh_uv     DOUBLE,
-        p_urbano       DOUBLE,
-        c_ig_com       DOUBLE,
-        hog_uv         DOUBLE,
-        geometria_wkt  STRING NOT NULL,
+        uv_rsh          STRING NOT NULL,
+        comuna          STRING NOT NULL,
+        rank_nac        DOUBLE,
+        pob_rsh_uv      DOUBLE,
+        p_urbano        DOUBLE,
+        c_ig_com        DOUBLE,
+        hog_uv          DOUBLE,
+        geometria_wkt   STRING NOT NULL,
+        fecha_carga     TIMESTAMP NOT NULL,
         _sistema_origen STRING,
         _id_corrida     STRING
     )
@@ -101,7 +112,7 @@ print("Tabla poligonos_vulnerabilidad_uv verificada/creada.")
 # MAGIC (los archivos `.shx`, `.dbf` y `.prj` deben estar en la misma carpeta, con
 # MAGIC el mismo nombre base). `COMUNAS_ANALIZADAS` mapea el slug de comuna (como
 # MAGIC en la columna `comuna` del resto del pipeline) al nombre tal como aparece
-# MAGIC en el shapefile (columna `Comuna`, mayúsculas sin tildes) — mismo mapeo que
+# MAGIC en el shapefile (columna `Comuna`, mayúsculas sin tildes), mismo mapeo que
 # MAGIC usa el proyecto original.
 
 # COMMAND ----------
@@ -129,7 +140,7 @@ RADIO_WEB_MERCATOR_M = 6378137.0
 
 # MAGIC %md
 # MAGIC ### 3. Reproyección Web Mercator (EPSG:3857) -> WGS84 (EPSG:4326)
-# MAGIC Fórmula cerrada estándar de la Mercator esférica — exacta para esta
+# MAGIC Fórmula cerrada estándar de la Mercator esférica, exacta para esta
 # MAGIC proyección, no es una aproximación.
 
 # COMMAND ----------
@@ -187,7 +198,7 @@ print(f"{len(registros_filtrados)} Unidades Vecinales encontradas en las 10 comu
 # MAGIC ### 5. Armar DataFrame y vista temporal
 # MAGIC Convierte la lista de dicts (una entrada por Unidad Vecinal, sección 4) a
 # MAGIC un DataFrame de pandas y de ahí a una vista temporal de Spark, para poder
-# MAGIC referenciarla desde el `%sql MERGE` de la sección 6. `df_poligonos.head()`
+# MAGIC referenciarla desde el `%sql INSERT` de la sección 6. `df_poligonos.head()`
 # MAGIC es solo para inspección visual al correr el notebook a mano.
 
 # COMMAND ----------
@@ -199,35 +210,50 @@ df_poligonos.head()
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 6. MERGE hacia Bronce (upsert por `uv_rsh`)
-# MAGIC Idempotente: si se vuelve a correr con el mismo shapefile (o uno
-# MAGIC actualizado), actualiza las Unidades Vecinales ya existentes en vez de
-# MAGIC duplicarlas.
+# MAGIC ### 6. INSERT append-only hacia Bronce (nueva versión SCD2 por `uv_rsh`)
+# MAGIC Idempotente sin usar `UPDATE`: compara cada UV del shapefile nuevo contra
+# MAGIC su versión vigente (`fecha_carga` más reciente por `uv_rsh`, calculada al
+# MAGIC vuelo, no guardada como flag) y solo inserta una fila nueva si es una UV
+# MAGIC que no existía antes, o si algún atributo cambió. Si se vuelve a correr
+# MAGIC con el mismo shapefile, esta consulta no inserta nada — evita ensuciar el
+# MAGIC histórico con versiones idénticas repetidas.
+# MAGIC
+# MAGIC UVs que existían antes y no aparecen en el shapefile nuevo (fusionadas o
+# MAGIC redefinidas en el IGVUST) se dejan como están: al no ser append-only con
+# MAGIC cierre de vigencia, simplemente no se les agrega una fila nueva y su
+# MAGIC última versión conocida sigue siendo la vigente.
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC MERGE INTO gran_concepcion.01_bronce.poligonos_vulnerabilidad_uv AS destino
-# MAGIC USING poligonos_vulnerabilidad_tmp AS nuevo
-# MAGIC ON destino.uv_rsh = nuevo.uv_rsh
-# MAGIC WHEN MATCHED THEN UPDATE SET
-# MAGIC     destino.comuna = nuevo.comuna,
-# MAGIC     destino.rank_nac = nuevo.rank_nac,
-# MAGIC     destino.pob_rsh_uv = nuevo.pob_rsh_uv,
-# MAGIC     destino.p_urbano = nuevo.p_urbano,
-# MAGIC     destino.c_ig_com = nuevo.c_ig_com,
-# MAGIC     destino.hog_uv = nuevo.hog_uv,
-# MAGIC     destino.geometria_wkt = nuevo.geometria_wkt,
-# MAGIC     destino._sistema_origen = nuevo._sistema_origen,
-# MAGIC     destino._id_corrida = nuevo._id_corrida
-# MAGIC WHEN NOT MATCHED THEN INSERT (
-# MAGIC     uv_rsh, comuna, rank_nac, pob_rsh_uv, p_urbano, c_ig_com, hog_uv, geometria_wkt,
-# MAGIC     _sistema_origen, _id_corrida
-# MAGIC ) VALUES (
-# MAGIC     nuevo.uv_rsh, nuevo.comuna, nuevo.rank_nac, nuevo.pob_rsh_uv,
-# MAGIC     nuevo.p_urbano, nuevo.c_ig_com, nuevo.hog_uv, nuevo.geometria_wkt,
-# MAGIC     nuevo._sistema_origen, nuevo._id_corrida
-# MAGIC )
+# MAGIC INSERT INTO gran_concepcion.01_bronce.poligonos_vulnerabilidad_uv
+# MAGIC SELECT
+# MAGIC     nuevo.uv_rsh,
+# MAGIC     nuevo.comuna,
+# MAGIC     nuevo.rank_nac,
+# MAGIC     nuevo.pob_rsh_uv,
+# MAGIC     nuevo.p_urbano,
+# MAGIC     nuevo.c_ig_com,
+# MAGIC     nuevo.hog_uv,
+# MAGIC     nuevo.geometria_wkt,
+# MAGIC     current_timestamp() AS fecha_carga,
+# MAGIC     nuevo._sistema_origen,
+# MAGIC     nuevo._id_corrida
+# MAGIC FROM poligonos_vulnerabilidad_tmp AS nuevo
+# MAGIC LEFT JOIN (
+# MAGIC     SELECT *
+# MAGIC     FROM gran_concepcion.01_bronce.poligonos_vulnerabilidad_uv
+# MAGIC     QUALIFY ROW_NUMBER() OVER (PARTITION BY uv_rsh ORDER BY fecha_carga DESC) = 1
+# MAGIC ) AS vigente
+# MAGIC ON nuevo.uv_rsh = vigente.uv_rsh
+# MAGIC WHERE vigente.uv_rsh IS NULL
+# MAGIC    OR nuevo.comuna <> vigente.comuna
+# MAGIC    OR nuevo.rank_nac IS DISTINCT FROM vigente.rank_nac
+# MAGIC    OR nuevo.pob_rsh_uv IS DISTINCT FROM vigente.pob_rsh_uv
+# MAGIC    OR nuevo.p_urbano IS DISTINCT FROM vigente.p_urbano
+# MAGIC    OR nuevo.c_ig_com IS DISTINCT FROM vigente.c_ig_com
+# MAGIC    OR nuevo.hog_uv IS DISTINCT FROM vigente.hog_uv
+# MAGIC    OR nuevo.geometria_wkt <> vigente.geometria_wkt
 
 # COMMAND ----------
 
@@ -237,7 +263,22 @@ df_poligonos.head()
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT comuna, COUNT(*) AS unidades_vecinales
-# MAGIC FROM gran_concepcion.01_bronce.poligonos_vulnerabilidad_uv
+# MAGIC -- Conteo de UVs vigentes por comuna (una fila por uv_rsh, la más reciente)
+# MAGIC SELECT comuna, COUNT(*) AS unidades_vecinales_vigentes
+# MAGIC FROM (
+# MAGIC     SELECT *
+# MAGIC     FROM gran_concepcion.01_bronce.poligonos_vulnerabilidad_uv
+# MAGIC     QUALIFY ROW_NUMBER() OVER (PARTITION BY uv_rsh ORDER BY fecha_carga DESC) = 1
+# MAGIC )
 # MAGIC GROUP BY comuna
 # MAGIC ORDER BY comuna
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC -- Histórico: cuántas versiones tiene cada UV y cuándo se cargó cada una
+# MAGIC SELECT uv_rsh, COUNT(*) AS versiones, MIN(fecha_carga) AS primera_carga, MAX(fecha_carga) AS ultima_carga
+# MAGIC FROM gran_concepcion.01_bronce.poligonos_vulnerabilidad_uv
+# MAGIC GROUP BY uv_rsh
+# MAGIC HAVING COUNT(*) > 1
+# MAGIC ORDER BY versiones DESC

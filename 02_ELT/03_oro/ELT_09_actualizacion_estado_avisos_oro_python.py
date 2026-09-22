@@ -8,7 +8,7 @@
 # ]
 # ///
 # MAGIC %md
-# MAGIC # 09 — Actualización de estado de avisos (Oro)
+# MAGIC # 09, Actualización de estado de avisos (Oro)
 # MAGIC
 # MAGIC Re-visita periódicamente los avisos que están `activo` en
 # MAGIC `gran_concepcion.03_oro.stg_avisos_features` para detectar si pasaron a
@@ -17,14 +17,14 @@
 # MAGIC
 # MAGIC **Por qué en Oro y no en Bronce:** `01_bronce/02_scraper_manual_detalle_bronce_python.ipynb`
 # MAGIC solo captura el estado de publicación tal como lo vio la PRIMERA vez que
-# MAGIC scrapeó el detalle de un aviso — un dato crudo más, igual que
+# MAGIC scrapeó el detalle de un aviso, un dato crudo más, igual que
 # MAGIC `descripcion` o `superficie_util_m2`. Como Plata y Oro son incrementales
 # MAGIC (solo procesan avisos que todavía no existen aguas abajo), ese valor
 # MAGIC crudo queda congelado en `avisos_limpios`/`stg_avisos_features` desde el
 # MAGIC momento en que el aviso entró a cada capa, y nunca se refresca. Este
 # MAGIC notebook resuelve ese problema con el mismo patrón que ya usa
 # MAGIC `07_vulnerabilidad_oro_python.py` (que también re-consulta una fuente
-# MAGIC externa — ahí el shapefile, acá el sitio en vivo — para sobreescribir un
+# MAGIC externa, ahí el shapefile, acá el sitio en vivo, para sobreescribir un
 # MAGIC valor con el estado ACTUAL): re-chequea el sitio y sobreescribe
 # MAGIC `estado_publicacion` en Oro, sin tocar el valor crudo que ya quedó
 # MAGIC guardado en Bronce/Plata.
@@ -36,7 +36,7 @@
 # MAGIC **Qué recibe:** `gran_concepcion.03_oro.stg_avisos_features` ya generada
 # MAGIC (notebooks 06 y 07 ya corridos), con `estado_publicacion` y `url`
 # MAGIC heredados de Plata (`url` viaja Bronce→Plata→Oro desde
-# MAGIC `04_limpieza_plata_sql.py`) — este notebook no necesita leer nada de
+# MAGIC `04_limpieza_plata_sql.py`), este notebook no necesita leer nada de
 # MAGIC Bronce directamente.
 # MAGIC
 # MAGIC **Qué entrega:** `estado_publicacion`, `fecha_chequeo_estado_oro` e
@@ -44,7 +44,7 @@
 # MAGIC `stg_avisos_features`, fila por fila, a medida que se re-chequea cada aviso
 # MAGIC (no en un solo `MERGE` al final): así un aviso ya re-chequeado en esta
 # MAGIC corrida queda guardado aunque la corrida se corte después por un
-# MAGIC CAPTCHA — mismo criterio de robustez que ya usa
+# MAGIC CAPTCHA, mismo criterio de robustez que ya usa
 # MAGIC `02_scraper_manual_detalle_bronce_python.ipynb`.
 # MAGIC
 # MAGIC **Incremental:** en cada corrida solo re-visita avisos `activo` cuyo
@@ -133,8 +133,8 @@ def construir_referer(comuna, tipo_propiedad):
 # del body), evaluado ANTES del chequeo de canonical/og:url: mismo criterio
 # y mismas rutas que `scrapers_base/02_scraper_detalle.py` del proyecto
 # original, que agregó esta detección tras un incidente real (agosto 2026,
-# ver README sección 9.5 de ese proyecto) donde este mismo patrón — sin esta
-# detección — hizo que ~1550 avisos activos se marcaran 'no_disponible' por
+# ver README sección 9.5 de ese proyecto) donde este mismo patrón, sin esta
+# detección, hizo que ~1550 avisos activos se marcaran 'no_disponible' por
 # error en el equivalente de este notebook.
 RUTAS_MURO_VERIFICACION = ("/gz/account-verification", "/jms/mlc/lgz/login", "/registration-pi")
 
@@ -150,7 +150,7 @@ CLAVES_ESTADO_PUBLICACION = ("item_status_message", "item_status_short_descripti
 # MAGIC %md
 # MAGIC ### 2. Asegurar que existan las columnas de re-chequeo en `stg_avisos_features`
 # MAGIC Si ya existen (de una corrida anterior), el `ALTER TABLE` falla
-# MAGIC silenciosamente (se captura la excepción) — mismo patrón que usan
+# MAGIC silenciosamente (se captura la excepción), mismo patrón que usan
 # MAGIC `05_imputacion_superficie_plata_python.py` y
 # MAGIC `07_vulnerabilidad_oro_python.py`. `estado_publicacion` ya existe
 # MAGIC (heredada de Plata); acá solo se agregan las columnas nuevas propias de
@@ -178,7 +178,7 @@ for columna, tipo in columnas_a_asegurar.items():
 # MAGIC %md
 # MAGIC ### 3. Crear la tabla de control de Oro (si no existe)
 # MAGIC Clave/valor genérica para estado interno de este notebook (cooldown tras
-# MAGIC CAPTCHA). Propia de Oro — no se lee ni se escribe la tabla `control` de
+# MAGIC CAPTCHA). Propia de Oro, no se lee ni se escribe la tabla `control` de
 # MAGIC Bronce, cada capa mantiene la suya.
 
 # COMMAND ----------

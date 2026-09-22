@@ -4,9 +4,9 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # Vista — `gran_concepcion.04_capa_semantica.vw_buscador_valor_m2_diario`
+# MAGIC # Vista, `gran_concepcion.04_capa_semantica.vw_buscador_valor_m2_diario`
 # MAGIC
-# MAGIC **Creada por:** `03_oro/11_modelo_dimensional_oro_sql.py` (sección 10) —
+# MAGIC **Creada por:** `03_oro/11_modelo_dimensional_oro_sql.py` (sección 10),
 # MAGIC referencia de solo lectura, el notebook fuente la crea inline con
 # MAGIC `CREATE OR REPLACE VIEW`. Idempotente, sin datos propios.
 # MAGIC
@@ -17,7 +17,7 @@
 # MAGIC (dataset `ds_valor_m2`).
 # MAGIC
 # MAGIC Nota: el valor/m² usa el `costo_total_real` **actual** de cada aviso
-# MAGIC (`fact_aviso` es snapshot), no el precio histórico de cada día — la serie
+# MAGIC (`fact_aviso` es snapshot), no el precio histórico de cada día, la serie
 # MAGIC refleja qué avisos estaban activos, no cómo cambió el precio de un aviso
 # MAGIC dado en el tiempo.
 

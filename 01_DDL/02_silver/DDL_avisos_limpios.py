@@ -4,10 +4,10 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # DDL — `gran_concepcion.02_plata.avisos_limpios`
+# MAGIC # DDL, `gran_concepcion.02_plata.avisos_limpios`
 # MAGIC
 # MAGIC **Creada por:** `02_plata/04_limpieza_plata_sql.py` (sección 7,
-# MAGIC `CREATE TABLE ... AS SELECT` a partir de `pendientes_precio_clp`) — el
+# MAGIC `CREATE TABLE ... AS SELECT` a partir de `pendientes_precio_clp`), el
 # MAGIC notebook fuente NO tiene un DDL explícito, el esquema lo infiere Spark de
 # MAGIC la cadena de vistas temporales. Columnas agregadas después vía
 # MAGIC `ALTER TABLE ADD COLUMNS`: `url`/`_sistema_origen`/`_id_corrida`
@@ -17,7 +17,7 @@
 # MAGIC (`05_imputacion_superficie_plata_python.py`).
 # MAGIC
 # MAGIC Esta celda se generó leyendo el esquema real de la tabla en el catálogo
-# MAGIC (`DESCRIBE TABLE`), no transcribiendo el `SELECT` a mano — es la única
+# MAGIC (`DESCRIBE TABLE`), no transcribiendo el `SELECT` a mano, es la única
 # MAGIC forma confiable de tener el DDL exacto de una tabla creada por CTAS. Es
 # MAGIC referencia de solo lectura: correrla no reemplaza el
 # MAGIC `CREATE TABLE ... AS SELECT` real del notebook fuente.
@@ -25,8 +25,8 @@
 # MAGIC Nota: hasta la corrida que corrigió esto, `condominio_cerrado`,
 # MAGIC `estacionamiento_visitas`, `solo_familias`, `piscina`, `quincho`,
 # MAGIC `conserjeria` y `ascensor` habían quedado tipadas `DOUBLE` (schema drift
-# MAGIC histórico) mientras `amoblado`/`admite_mascotas` — mismo patrón
-# MAGIC `CASE WHEN ... THEN 1 WHEN ... THEN 0 END` — ya eran `INT`. Se
+# MAGIC histórico) mientras `amoblado`/`admite_mascotas`, mismo patrón
+# MAGIC `CASE WHEN ... THEN 1 WHEN ... THEN 0 END`, ya eran `INT`. Se
 # MAGIC normalizaron las 9 a `INT` con un `CREATE OR REPLACE TABLE ... AS SELECT`
 # MAGIC (Delta no permite angostar tipo con `ALTER TABLE`). También se corrigió
 # MAGIC `solo_familias_texto`, que había quedado `void` (100% NULL en ese

@@ -4,9 +4,9 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # Vista — `gran_concepcion.04_capa_semantica.vw_buscador_avisos`
+# MAGIC # Vista, `gran_concepcion.04_capa_semantica.vw_buscador_avisos`
 # MAGIC
-# MAGIC **Creada por:** `03_oro/11_modelo_dimensional_oro_sql.py` (sección 10) —
+# MAGIC **Creada por:** `03_oro/11_modelo_dimensional_oro_sql.py` (sección 10),
 # MAGIC referencia de solo lectura, el notebook fuente la crea inline con
 # MAGIC `CREATE OR REPLACE VIEW`. Correr esta celda es idempotente y no destruye
 # MAGIC datos (una vista no tiene datos propios); sirve para recrear la vista en
@@ -17,7 +17,7 @@
 # MAGIC publicado (`activo` o `pausado`) con coordenadas y predicción vigente,
 # MAGIC uniendo `fact_aviso` con sus dimensiones satélite y las dos SCD2. El
 # MAGIC dashboard AI/BI ("Buscador de Arriendos - Gran Concepcion", dataset
-# MAGIC `ds_buscador`) lee `SELECT * FROM` esta vista en vez de repetir el join —
+# MAGIC `ds_buscador`) lee `SELECT * FROM` esta vista en vez de repetir el join,
 # MAGIC así la lógica de negocio (traducción de `etiqueta`/`nivel_confianza` a
 # MAGIC texto legible, filtro de estados publicables) queda versionada acá y no
 # MAGIC atrapada en el JSON del dashboard.

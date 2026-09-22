@@ -4,7 +4,7 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # 00 — Carga manual de la población de referencia (Oro)
+# MAGIC # 00, Carga manual de la población de referencia (Oro)
 # MAGIC
 # MAGIC El modelo de precio del proyecto original se entrenó sobre un dataset
 # MAGIC histórico congelado, no sobre "todo lo que haya en el catálogo al momento
@@ -18,20 +18,20 @@
 # MAGIC la acompañan, a tablas Delta que `06_features_oro_sql` usa como
 # MAGIC referencia fija. **Corrida manual, una sola vez** (o cada vez que se
 # MAGIC entrene una versión nueva del modelo con un dataset de referencia
-# MAGIC distinto) — no forma parte de la secuencia automática del pipeline.
+# MAGIC distinto), no forma parte de la secuencia automática del pipeline.
 # MAGIC
 # MAGIC **Qué recibe** (subido a mano a un Volume antes de correr este notebook,
 # MAGIC mismos archivos que ya usa el proyecto original en
 # MAGIC `investigacion/03_ingenieria_variables/save/`):
 # MAGIC - `datos_ingenieria_variables.csv`: el dataset histórico ya limpio e
 # MAGIC   imputado (sin latitud/longitud/comuna, esas se recuperan del Bronce
-# MAGIC   propio de Databricks — ver sección 3).
+# MAGIC   propio de Databricks, ver sección 3).
 # MAGIC - `niveles_barrio.json`: diccionario barrio → nivel de precio, ya
 # MAGIC   calculado, más el nivel por defecto para barrios no vistos.
 # MAGIC - `selected_features.csv`: la lista de las features que el modelo espera.
 # MAGIC
 # MAGIC Databricks es una réplica independiente del proyecto original (scraper
-# MAGIC propio, catálogo propio) — este notebook NO se conecta a la base de datos
+# MAGIC propio, catálogo propio), este notebook NO se conecta a la base de datos
 # MAGIC del proyecto original ni a Supabase. Por eso la cobertura de coordenadas
 # MAGIC queda limitada a los avisos históricos que el scraper propio de
 # MAGIC Databricks también llegó a capturar (ver sección 3).
@@ -39,7 +39,7 @@
 # MAGIC **Qué entrega:** cinco tablas en `gran_concepcion.03_oro`:
 # MAGIC - `stg_poblacion_referencia`: una fila por aviso histórico, con coordenadas.
 # MAGIC - `dim_barrio`: mapa barrio → nivel, con surrogate key (`barrio_id`) para
-# MAGIC   el modelo dimensional — la única tabla de esta lista que no lleva
+# MAGIC   el modelo dimensional, la única tabla de esta lista que no lleva
 # MAGIC   prefijo `stg_`, porque se consume directo desde Power BI.
 # MAGIC - `stg_referencia_estadisticas`: valores de respaldo (clave/valor) usados
 # MAGIC   cuando un aviso nuevo no tiene vecinos válidos.
@@ -83,7 +83,7 @@ MULTIPLICADOR_IQR = 3
 # MAGIC %md
 # MAGIC ### 2. Crear el esquema y las tablas de referencia (si no existen)
 # MAGIC Las cinco tablas que este notebook puebla. Son de referencia estática
-# MAGIC (no incrementales, no particionadas — ver `.claude/rules/particionado-optimize.md`):
+# MAGIC (no incrementales, no particionadas, ver `.claude/rules/particionado-optimize.md`):
 # MAGIC cada corrida de este notebook las sobreescribe completas.
 
 # COMMAND ----------
@@ -109,7 +109,7 @@ spark.sql("""
 """)
 
 # dim_barrio (no stg_: se consume directo desde Power BI) lleva surrogate key
-# — GENERATED ALWAYS AS IDENTITY no admite CTAS con esquema explícito, así
+#, GENERATED ALWAYS AS IDENTITY no admite CTAS con esquema explícito, así
 # que si la tabla no existe se crea vacía acá y la sección 7 la puebla con
 # INSERT (nunca con overwrite de DataFrame, que no sabe generar la identity).
 spark.sql("""
@@ -154,11 +154,11 @@ print("Esquema y tablas de referencia verificados/creados.")
 # MAGIC `datos_ingenieria_variables.csv` no trae coordenadas (se descartan en el
 # MAGIC pipeline de investigación tras usarlas para imputar). Se recuperan
 # MAGIC cruzando por `id_aviso` contra el Bronce PROPIO de Databricks
-# MAGIC (`01_bronce.avisos`/`avisos_detalle`) — nunca contra la base del proyecto
+# MAGIC (`01_bronce.avisos`/`avisos_detalle`), nunca contra la base del proyecto
 # MAGIC original ni contra Supabase, para que Databricks siga siendo una réplica
 # MAGIC independiente con su propio scraper. Consecuencia esperada: solo se
 # MAGIC recupera coordenadas para los avisos históricos que el scraper propio de
-# MAGIC Databricks también llegó a capturar — no el 100% del dataset de
+# MAGIC Databricks también llegó a capturar, no el 100% del dataset de
 # MAGIC entrenamiento del modelo. `latitud`/`longitud` viven como STRING en
 # MAGIC Bronce (ver `01_bronce/02_scraper_manual_detalle_bronce_python.ipynb`),
 # MAGIC de ahí el `TRY_CAST` a DOUBLE.
@@ -182,7 +182,7 @@ referencia = df_csv.merge(coords_comuna, on="id_aviso", how="inner")
 referencia = referencia.dropna(subset=["latitud", "longitud"]).reset_index(drop=True)
 
 print(f"Población de referencia: {len(referencia)} departamentos históricos con coordenadas "
-      f"(de {len(df_csv)} en el CSV de entrenamiento — cobertura limitada al subconjunto que "
+      f"(de {len(df_csv)} en el CSV de entrenamiento, cobertura limitada al subconjunto que "
       f"el scraper propio de Databricks también capturó).")
 
 # COMMAND ----------
@@ -320,7 +320,7 @@ df_niveles_barrio = pd.DataFrame([
     for barrio, nivel in niveles_barrio["mapa_barrio_a_nivel"].items()
 ])
 # int32 (no el "int"/int64 default de pandas) para calzar exacto con la
-# columna INT del DDL — con int64, spark.createDataFrame infiere BIGINT.
+# columna INT del DDL, con int64, spark.createDataFrame infiere BIGINT.
 # Mismo fix que decil_precio en 10_prediccion_oro_python.py.
 df_niveles_barrio["nivel_barrio"] = df_niveles_barrio["nivel_barrio"].astype("int32")
 
@@ -348,7 +348,7 @@ print(f"{df_niveles_barrio.shape[0]} barrios cargados. Nivel por defecto: {nivel
 # MAGIC ### 8. Cargar `selected_features.csv`
 # MAGIC La lista de las 29 features que el modelo espera, en el orden que
 # MAGIC `10_prediccion_oro_python.py` usa para armar la matriz de entrada
-# MAGIC (`pendientes_df.reindex(columns=features_modelo, ...)`) — se guarda tal
+# MAGIC (`pendientes_df.reindex(columns=features_modelo, ...)`), se guarda tal
 # MAGIC cual, sin transformar.
 
 # COMMAND ----------

@@ -4,15 +4,15 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # DDL — `gran_concepcion.03_oro.stg_predicciones`
+# MAGIC # DDL, `gran_concepcion.03_oro.stg_predicciones`
 # MAGIC
-# MAGIC **Creada por:** `03_oro/10_prediccion_oro_python.py` (sección 2) —
+# MAGIC **Creada por:** `03_oro/10_prediccion_oro_python.py` (sección 2),
 # MAGIC referencia de solo lectura, el notebook fuente la crea inline con
 # MAGIC `CREATE TABLE IF NOT EXISTS`. Correr esta celda es idempotente; no
 # MAGIC reemplaza esa lógica, sirve para recrear el esquema en un workspace nuevo
 # MAGIC o inspeccionar la definición sin abrir el notebook fuente.
 # MAGIC
-# MAGIC Una fila por (`id_aviso`, `version_modelo`) — histórico completo, nunca
+# MAGIC Una fila por (`id_aviso`, `version_modelo`), histórico completo, nunca
 # MAGIC se pisa entre reentrenamientos. Fuente de `dim_prediccion_scd2` y de las
 # MAGIC medidas reales/predichas de `fact_aviso`
 # MAGIC (`11_modelo_dimensional_oro_sql.py`). Particionada por

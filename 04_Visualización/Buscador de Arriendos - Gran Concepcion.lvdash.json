@@ -1068,9 +1068,9 @@
                 "\n",
                 "- **Alta**: los 10 modelos predicen costos muy parecidos.\n",
                 "- **Media**: hay algo de desacuerdo entre los modelos.\n",
-                "- **Baja**: los 10 modelos predicen costos bastante distintos — señal de una combinación de características poco común en los datos de entrenamiento.\n",
+                "- **Baja**: los 10 modelos predicen costos bastante distintos, señal de una combinación de características poco común en los datos de entrenamiento.\n",
                 "\n",
-                "Confianza alta no garantiza que la predicción sea correcta — solo dice que el modelo es consistente consigo mismo para ese aviso.\n",
+                "Confianza alta no garantiza que la predicción sea correcta, solo dice que el modelo es consistente consigo mismo para ese aviso.\n",
                 "\n",
                 "## Qué tan preciso es\n",
                 "\n",
@@ -1089,7 +1089,7 @@
                 "Este buscador se hizo **solo a modo de prueba y aprendizaje**, no es un servicio de tasación ni una recomendación de inversión.\n",
                 "\n",
                 "- El modelo no captura variables como estado de conservación interno, luminosidad, ruido, calidad de terminaciones, vista, o condiciones del contrato.\n",
-                "- Los datos vienen de avisos publicados — pueden tener errores de tipeo, precios o gastos comunes desactualizados.\n",
+                "- Los datos vienen de avisos publicados, pueden tener errores de tipeo, precios o gastos comunes desactualizados.\n",
                 "- El error típico del modelo (~6,7%, más alto en tramos de costo poco frecuentes) significa que puede fallar, incluso en avisos marcados con confianza alta.\n",
                 "- Revisá siempre la publicación original antes de sacar conclusiones sobre un aviso puntual."
               ]

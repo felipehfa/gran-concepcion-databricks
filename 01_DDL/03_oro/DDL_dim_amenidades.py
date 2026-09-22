@@ -4,15 +4,15 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # DDL — `gran_concepcion.03_oro.dim_amenidades`
+# MAGIC # DDL, `gran_concepcion.03_oro.dim_amenidades`
 # MAGIC
-# MAGIC **Creada por:** `03_oro/11_modelo_dimensional_oro_sql.py` (sección 1) —
+# MAGIC **Creada por:** `03_oro/11_modelo_dimensional_oro_sql.py` (sección 1),
 # MAGIC referencia de solo lectura, el notebook fuente la crea inline con
 # MAGIC `CREATE TABLE IF NOT EXISTS`. Correr esta celda es idempotente; no
 # MAGIC reemplaza esa lógica, sirve para recrear el esquema en un workspace nuevo
 # MAGIC o inspeccionar la definición sin abrir el notebook fuente.
 # MAGIC
-# MAGIC Dimensión satélite 1:1 con el aviso — puntos de interés cercanos (radio
+# MAGIC Dimensión satélite 1:1 con el aviso, puntos de interés cercanos (radio
 # MAGIC 500m), 11 categorías, cada una con cantidad + distancia al más cercano.
 # MAGIC Se refresca (`MERGE`, SCD1) desde `stg_avisos_features` en cada corrida.
 

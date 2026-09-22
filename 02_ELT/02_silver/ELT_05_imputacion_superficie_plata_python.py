@@ -7,16 +7,16 @@
 # ]
 # ///
 # MAGIC %md
-# MAGIC # 05 — Imputación de superficie con Random Forest (Plata)
+# MAGIC # 05, Imputación de superficie con Random Forest (Plata)
 # MAGIC
 # MAGIC Carga dos modelos `RandomForestRegressor` ya entrenados (uno para
 # MAGIC `superficie_util_m2`, otro para `superficie_total_m2`) y los usa para
 # MAGIC completar los avisos donde ese dato faltaba tras la limpieza SQL. Solo se
-# MAGIC predicen las filas con valor faltante — las que ya tienen un valor válido
+# MAGIC predicen las filas con valor faltante, las que ya tienen un valor válido
 # MAGIC (real o imputado en una corrida anterior) no se tocan.
 # MAGIC
 # MAGIC Se corrige primero **superficie útil**, se guarda ese resultado, y recién
-# MAGIC después se corrige **superficie total** — ya que el modelo de superficie
+# MAGIC después se corrige **superficie total**, ya que el modelo de superficie
 # MAGIC total usa la superficie útil (ya corregida) como una de sus columnas
 # MAGIC predictoras.
 # MAGIC
@@ -34,7 +34,7 @@
 # MAGIC %md
 # MAGIC ### 0. Importar librerías
 # MAGIC `scikit-learn` ya viene declarada como dependencia del entorno de este
-# MAGIC notebook (bloque `dependencies` arriba) — necesaria para que `joblib`
+# MAGIC notebook (bloque `dependencies` arriba), necesaria para que `joblib`
 # MAGIC pueda deserializar los modelos `RandomForestRegressor` guardados, aunque
 # MAGIC no se importe explícitamente acá.
 
@@ -126,7 +126,7 @@ print(f"{mask_falta_util.sum()} avisos con superficie_util_m2 faltante de {len(d
 ahora = datetime.now()
 
 if mask_falta_util.sum() == 0:
-    print("No hay valores faltantes de superficie_util_m2 — nada que imputar.")
+    print("No hay valores faltantes de superficie_util_m2, nada que imputar.")
 else:
     columnas_util = paquete_util["columnas_entrenamiento"]
 
@@ -150,11 +150,11 @@ df_plata.loc[mask_falta_util, ["id_aviso", "superficie_util_m2", "superficie_uti
 # MAGIC ### 6. Guardar superficie útil corregida en la tabla de Plata
 # MAGIC `MERGE` dirigido solo a las filas imputadas esta corrida y solo a las 3
 # MAGIC columnas relevantes (`superficie_util_m2`, `superficie_util_imputada`,
-# MAGIC `fecha_imputacion_util`) — **no** un `CREATE OR REPLACE TABLE ... AS
+# MAGIC `fecha_imputacion_util`), **no** un `CREATE OR REPLACE TABLE ... AS
 # MAGIC SELECT *` sobre todo `avisos_limpios`. Ese patrón (usado antes acá)
 # MAGIC reescribía la tabla completa pasando cada corrida por un round-trip a
 # MAGIC pandas (`spark.createDataFrame(df_plata)`), que reinfiere el tipo de
-# MAGIC TODAS las columnas desde los dtypes de pandas — no solo las que este
+# MAGIC TODAS las columnas desde los dtypes de pandas, no solo las que este
 # MAGIC notebook realmente toca. Eso pisaba en silencio, en cada corrida,
 # MAGIC cualquier tipo explícito fijado aguas arriba (ej. los 7 flags booleanos
 # MAGIC de `04_limpieza_plata_sql.py`, que pandas infiere `float64` en cuanto hay
@@ -248,7 +248,7 @@ print(f"{mask_falta_total.sum()} avisos con superficie_total_m2 faltante de {len
 ahora = datetime.now()
 
 if mask_falta_total.sum() == 0:
-    print("No hay valores faltantes de superficie_total_m2 — nada que imputar.")
+    print("No hay valores faltantes de superficie_total_m2, nada que imputar.")
 else:
     columnas_total = paquete_total["columnas_entrenamiento"]
 
@@ -270,7 +270,7 @@ df_plata.loc[mask_falta_total, ["id_aviso", "superficie_total_m2", "superficie_t
 
 # MAGIC %md
 # MAGIC ### 12. Guardar superficie total corregida en la tabla de Plata
-# MAGIC Mismo `MERGE` dirigido que en la sección 6 — ver esa celda para el porqué
+# MAGIC Mismo `MERGE` dirigido que en la sección 6, ver esa celda para el porqué
 # MAGIC del cambio respecto al `CREATE OR REPLACE TABLE ... AS SELECT *` que
 # MAGIC usaba antes.
 

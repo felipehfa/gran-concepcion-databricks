@@ -13,7 +13,7 @@
 # MAGIC Una fila por corrida del Job `gran_concepcion_pipeline` (id
 # MAGIC 1060179417531534): inicio, fin, duracion, estado (`SUCCEEDED` / `FAILED` /
 # MAGIC `EN_CURSO` ...), `exito`, `termination_code`, `trigger_type`, tareas no OK,
-# MAGIC y las metricas de negocio **por corrida** — avisos nuevos, rechequeos de
+# MAGIC y las metricas de negocio **por corrida**, avisos nuevos, rechequeos de
 # MAGIC estado, cambios de estado, predicciones nuevas.
 # MAGIC
 # MAGIC Las metricas de negocio NO estan instrumentadas en los notebooks: se

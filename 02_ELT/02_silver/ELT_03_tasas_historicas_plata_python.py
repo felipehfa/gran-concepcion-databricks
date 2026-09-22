@@ -4,7 +4,7 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # 03 — Tasas históricas de UF (Plata)
+# MAGIC # 03, Tasas históricas de UF (Plata)
 # MAGIC
 # MAGIC La conversión de un precio en UF a CLP necesita el valor de la UF vigente
 # MAGIC el día en que se publicó ese aviso específico, no el valor de hoy. Este
@@ -99,7 +99,7 @@ except Exception:
 fechas_faltantes = fechas_necesarias - fechas_existentes
 print(f"{len(fechas_faltantes)} fechas todavía no cacheadas, se consultarán a la API.")
 
-# Último valor de UF ya cacheado — respaldo para cuando mindicador.cl no se
+# Último valor de UF ya cacheado, respaldo para cuando mindicador.cl no se
 # pueda alcanzar en absoluto (ver sección 4), no para fines de semana/feriados
 # normales (esos siguen sin cachearse, se reintentan solos en la próxima
 # corrida).
@@ -120,10 +120,10 @@ except Exception:
 
 # MAGIC %md
 # MAGIC ### 4. Consultar mindicador.cl por año
-# MAGIC Una sola llamada por año trae la serie completa — mucho más eficiente que
+# MAGIC Una sola llamada por año trae la serie completa, mucho más eficiente que
 # MAGIC una llamada por fecha individual. Reintenta con backoff ante timeout o
 # MAGIC error de red (`TIMEOUT_REQUEST_SEG`/`REINTENTOS_TRAS_ERROR`/
-# MAGIC `BACKOFF_REINTENTO_MIN`/`MAX`, sección 0) — mismo patrón que ya usa el
+# MAGIC `BACKOFF_REINTENTO_MIN`/`MAX`, sección 0), mismo patrón que ya usa el
 # MAGIC scraper de Bronce.
 # MAGIC
 # MAGIC Si los reintentos se agotan para un año completo (mindicador.cl
@@ -132,7 +132,7 @@ except Exception:
 # MAGIC fechas de ese año usan como respaldo el último valor de UF ya cacheado
 # MAGIC (`ultimo_valor_uf_cacheado`, sección 3) en vez de quedar sin cachear. La
 # MAGIC UF varía muy poco día a día, así que un respaldo de este tipo introduce
-# MAGIC un error mínimo — muy preferible a tumbar toda la corrida (y con ella
+# MAGIC un error mínimo, muy preferible a tumbar toda la corrida (y con ella
 # MAGIC las 7 tareas que dependen de este notebook en el Job programado).
 
 # COMMAND ----------
@@ -172,10 +172,10 @@ print(f"{len(valores_uf_por_fecha)} valores de UF obtenidos en total (todos los 
 # MAGIC %md
 # MAGIC ### 5. Armar el DataFrame solo con las fechas que faltaban
 # MAGIC El dólar se agrega como valor fijo aproximado en cada fila, junto a la UF
-# MAGIC consultada (o al respaldo, si el año de esa fecha no se pudo consultar —
+# MAGIC consultada (o al respaldo, si el año de esa fecha no se pudo consultar,
 # MAGIC ver sección 4). Una fecha de un año que SÍ se pudo consultar pero que
 # MAGIC igual no aparece en la serie (fin de semana/feriado real, sin
-# MAGIC publicación oficial) sigue sin cachearse — el respaldo es solo para la
+# MAGIC publicación oficial) sigue sin cachearse, el respaldo es solo para la
 # MAGIC falla de conexión, no reemplaza ese caso.
 
 # COMMAND ----------
@@ -238,7 +238,7 @@ esquema_valores_pesos_nuevos = StructType([
 if len(df_uf_nuevos) > 0:
     spark.createDataFrame(df_uf_nuevos, esquema_valores_pesos_nuevos).createOrReplaceTempView("valores_pesos_nuevos_tmp")
 else:
-    print("No hay filas nuevas para insertar — todas las fechas necesarias ya estaban cacheadas.")
+    print("No hay filas nuevas para insertar, todas las fechas necesarias ya estaban cacheadas.")
     spark.createDataFrame([], esquema_valores_pesos_nuevos).createOrReplaceTempView("valores_pesos_nuevos_tmp")
 
 # COMMAND ----------
@@ -247,7 +247,7 @@ else:
 # MAGIC ### 7. Insertar las fechas nuevas
 # MAGIC La vista temporal de la celda anterior ya existe siempre (vacía si no
 # MAGIC había fechas nuevas), así que este `INSERT` es un no-op seguro en ese
-# MAGIC caso — no puede fallar por vista inexistente.
+# MAGIC caso, no puede fallar por vista inexistente.
 
 # COMMAND ----------
 

@@ -7,7 +7,7 @@
 # ]
 # ///
 # MAGIC %md
-# MAGIC # 10 — Predicción de precio (Oro)
+# MAGIC # 10, Predicción de precio (Oro)
 # MAGIC
 # MAGIC Toma los avisos de `gran_concepcion.03_oro.stg_avisos_features`, predice el
 # MAGIC costo total mensual (arriendo + gastos comunes) con el ensamble LightGBM
@@ -19,7 +19,7 @@
 # MAGIC **Antes vivía en un esquema propio (`gran_concepcion.04_prediccion`),
 # MAGIC como una 4ª capa fuera del modelo medallón de 3 capas.** Se plegó acá
 # MAGIC porque, conceptualmente, "avisos con su predicción y etiqueta lista para
-# MAGIC consumo de negocio" es exactamente lo que un layer Gold debería servir —
+# MAGIC consumo de negocio" es exactamente lo que un layer Gold debería servir,
 # MAGIC a diferencia de `stg_avisos_features` (feature engineering, más parecido a un
 # MAGIC segundo Silver), esta tabla sí es la salida final que consume el
 # MAGIC visualizador. Con esto, Oro pasa a incluir tanto la ingeniería de
@@ -150,12 +150,12 @@ else:
 # MAGIC entrenamiento (`numpy==2.4.6`, ver `requirements.txt` del proyecto
 # MAGIC original), que en la versión 2.0 renombró el paquete interno
 # MAGIC `numpy.core` a `numpy._core`. El entorno serverless de este notebook trae
-# MAGIC `numpy==1.23.5` (no declaramos una versión propia porque `spark` —
-# MAGIC Spark Connect en serverless — depende de su propio numpy/pandas/pyarrow
+# MAGIC `numpy==1.23.5` (no declaramos una versión propia porque `spark`,
+# MAGIC Spark Connect en serverless, depende de su propio numpy/pandas/pyarrow
 # MAGIC internos; fijar una versión distinta en las dependencias del notebook
 # MAGIC rompe la inicialización de `spark`, verificado). En vez de eso, se
 # MAGIC alias `numpy._core` al `numpy.core` de la 1.x justo antes de
-# MAGIC deserializar — mismo contenido, solo cambió el nombre del módulo entre
+# MAGIC deserializar, mismo contenido, solo cambió el nombre del módulo entre
 # MAGIC versiones, así que la reconstrucción de arrays/dtypes es equivalente.
 
 # COMMAND ----------
@@ -216,7 +216,7 @@ print(f"{len(pendientes_df)} avisos pendientes de predicción para la versión {
 # MAGIC hace falta reconvertir UF→CLP, a diferencia del proyecto original, que sí
 # MAGIC lo recalcula acá porque sus tablas de avisos en producción no guardan
 # MAGIC `precio_clp`; el valor final es el mismo). Los avisos con `precio_clp`
-# MAGIC sobre el umbral se saltan esta corrida — se reintentan en la próxima,
+# MAGIC sobre el umbral se saltan esta corrida, se reintentan en la próxima,
 # MAGIC igual que en el original.
 
 # COMMAND ----------
@@ -281,7 +281,7 @@ if len(pendientes_df) > 0:
 
     decil = pd.cut(pendientes_df["costo_total_real"], bins=bordes_deciles, labels=False, include_lowest=True)
     # int32 (no el "int"/int64 default de pandas) para calzar exacto con la
-    # columna INT de `stg_predicciones` — evita depender del cast implícito
+    # columna INT de `stg_predicciones`, evita depender del cast implícito
     # BIGINT->INT que haría Spark si spark.createDataFrame infiriera int64.
     pendientes_df["decil_precio"] = decil.astype("int32")
 

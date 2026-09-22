@@ -4,11 +4,11 @@
 # environment_version = "2"
 # ///
 # MAGIC %md
-# MAGIC # 12 — Snapshot del historial de tablas (Oro)
+# MAGIC # 12, Snapshot del historial de tablas (Oro)
 # MAGIC
 # MAGIC Recorre `DESCRIBE HISTORY` de todas las tablas Delta de las 3 capas
-# MAGIC (`01_bronce`, `02_plata`, `03_oro`) y persiste cada commit — con sus
-# MAGIC métricas de filas (insertadas / actualizadas / borradas) — en
+# MAGIC (`01_bronce`, `02_plata`, `03_oro`) y persiste cada commit, con sus
+# MAGIC métricas de filas (insertadas / actualizadas / borradas), en
 # MAGIC `gran_concepcion.03_oro.historial_tablas`.
 # MAGIC
 # MAGIC **Por qué existe:** el historial Delta se poda a ~30 días
@@ -22,7 +22,7 @@
 # MAGIC registradas (`LEFT ANTI JOIN` por `tabla + version`). Nunca actualiza una
 # MAGIC fila existente.
 # MAGIC
-# MAGIC **Última tarea del Job `gran_concepcion_pipeline`** — corre después de
+# MAGIC **Última tarea del Job `gran_concepcion_pipeline`**, corre después de
 # MAGIC `modelo_dimensional`, así captura los commits de la corrida completa.
 
 # COMMAND ----------
@@ -75,7 +75,7 @@ print("Tabla historial_tablas verificada/creada.")
 # MAGIC timestamps por fila de Oro para reconstruir avisos nuevos / rechequeos /
 # MAGIC cambios de estado / predicciones **por corrida** (sin instrumentar los
 # MAGIC notebooks). Viven en `gran_concepcion.04_capa_semantica` (mismo schema
-# MAGIC que las vistas del buscador — ver nb 11 sección 10), aunque leen tablas
+# MAGIC que las vistas del buscador, ver nb 11 sección 10), aunque leen tablas
 # MAGIC de `03_oro` como `historial_tablas` y `dim_estado_aviso_scd2`. Definición
 # MAGIC standalone en `04_capa_semantica/views/vw_corridas*.py`.
 

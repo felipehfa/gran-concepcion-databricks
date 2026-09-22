@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC %md
-# MAGIC # 01 — Scraper manual de grilla (Bronce)
+# MAGIC # 01, Scraper manual de grilla (Bronce)
 # MAGIC
 # MAGIC Recorre las páginas de resultados de búsqueda (grilla) para un conjunto de
 # MAGIC comunas y tipos de propiedad, extrayendo los datos básicos de cada aviso
@@ -106,7 +106,7 @@ TIPOS_PROPIEDAD_PRODUCCION = ["departamento"]
 OPERACION = "arriendo"
 
 MAX_PAGINAS_POR_BUSQUEDA = 1000
-MAX_PAGINAS_VACIAS_CONSECUTIVAS = 10
+MAX_PAGINAS_VACIAS_CONSECUTIVAS = 20
 MAX_PAGINAS_POR_CORRIDA = 200
 MAX_MINUTOS_POR_CORRIDA = 30
 RESULTADOS_POR_PAGINA = 48
@@ -161,7 +161,7 @@ class Aviso:
 # MAGIC ### 3. Crear el esquema de Bronce y la tabla `avisos` (si no existen)
 # MAGIC Para que el pipeline se pueda reconstruir desde cero sin pasos manuales: si
 # MAGIC el catálogo está vacío, este bloque deja creado el esquema `01_bronce`, la
-# MAGIC tabla `avisos` (partición por `first_seen`, fecha de ingesta — nunca se
+# MAGIC tabla `avisos` (partición por `first_seen`, fecha de ingesta, nunca se
 # MAGIC actualiza después de insertada, `estado_publicacion` vive en
 # MAGIC `avisos_detalle`, ver `02_scraper_manual_detalle_bronce`) y la tabla
 # MAGIC `control` (clave/valor genérica para estado interno de los scrapers). Si ya
@@ -199,7 +199,7 @@ spark.sql("""
 # Tabla clave/valor genérica para estado interno de los scrapers (ej. cooldown
 # tras CAPTCHA del scraper de detalle, ver 02_scraper_manual_detalle_bronce).
 # Es infraestructura operativa del propio pipeline, no una entidad de negocio
-# versionada — queda fuera de la discusión de inmutabilidad de Bronce. Se
+# versionada, queda fuera de la discusión de inmutabilidad de Bronce. Se
 # crea acá porque este notebook corre primero en la secuencia manual.
 spark.sql("""
     CREATE TABLE IF NOT EXISTS gran_concepcion.01_bronce.control (
@@ -445,10 +445,22 @@ df_nuevos.head()
 # MAGIC ### 8. Crear vista temporal para el INSERT
 # MAGIC Punto único de contacto con Spark: convierte el DataFrame de pandas en una
 # MAGIC vista SQL temporal.
+# MAGIC
+# MAGIC Si no hay avisos nuevos (`df_nuevos` vacío, ej. la grilla ya estaba al
+# MAGIC día), `spark.createDataFrame(df_nuevos)` no puede inferir un esquema de
+# MAGIC un DataFrame de pandas vacío (`CANNOT_INFER_EMPTY_SCHEMA`). En ese caso se
+# MAGIC arma la vista vacía con el esquema real de `avisos` (`WHERE 1=0`) en vez
+# MAGIC de inferirlo, para que el `MERGE` de la sección 9 quede como no-op en vez
+# MAGIC de romper la corrida.
 
 # COMMAND ----------
 
-spark.createDataFrame(df_nuevos).createOrReplaceTempView("avisos_nuevos_tmp")
+if len(df_nuevos) == 0:
+    print("No hay avisos nuevos: vista temporal vacía, el MERGE de la sección 9 no insertará nada.")
+    spark.sql("SELECT * FROM gran_concepcion.01_bronce.avisos WHERE 1 = 0") \
+        .createOrReplaceTempView("avisos_nuevos_tmp")
+else:
+    spark.createDataFrame(df_nuevos).createOrReplaceTempView("avisos_nuevos_tmp")
 
 # COMMAND ----------
 
