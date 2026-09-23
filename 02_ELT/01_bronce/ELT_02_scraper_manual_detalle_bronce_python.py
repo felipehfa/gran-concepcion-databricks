@@ -1,4 +1,12 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "2"
+# dependencies = [
+#   "beautifulsoup4",
+#   "lxml",
+# ]
+# ///
 # MAGIC %md
 # MAGIC # 02, Scraper manual de detalle (Bronce)
 # MAGIC
@@ -70,7 +78,12 @@
 
 # MAGIC %md
 # MAGIC ### 0. Importar librerías
-# MAGIC Todas las librerías que usa este notebook, centralizadas al inicio. `beautifulsoup4` y `lxml` ya vienen declaradas como dependencias del entorno de este notebook (Databricks → Entorno del notebook), así que no hace falta un `%pip install` adicional; solo hay que importarlas.
+# MAGIC Todas las librerías que usa este notebook, centralizadas al inicio. `beautifulsoup4` y `lxml` se declaran en el header del notebook y además se instalan con `%pip install` en la celda siguiente, para que el entorno sobreviva a un ciclo de exportar/reimportar el notebook.
+
+# COMMAND ----------
+
+# MAGIC %pip install beautifulsoup4 lxml
+# MAGIC %restart_python
 
 # COMMAND ----------
 
